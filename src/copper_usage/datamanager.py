@@ -4,7 +4,7 @@ import pandas as pd
 from pydantic.dataclasses import dataclass
 
 
-from copper_usage.model import ThicknessCalculation
+from copper_usage.thickness_calculation import ThicknessCalculation
 
 
 class DataManager():

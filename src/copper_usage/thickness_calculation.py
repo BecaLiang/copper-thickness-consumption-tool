@@ -13,23 +13,70 @@ from scipy.optimize import curve_fit, minimize
 
 
 @dataclass
+class Constraint:
+
+    lower: float | None=None
+    upper: float | None=None
+
+    def get(self):
+        return [self.lower or -np.inf, self.upper or np.inf]
+    
+    @classmethod
+    def init_dict_from_dict(cls, constraints: dict[str, dict[str, float]]):
+        obj_dict = {}
+        for column, constrs in constraints.items():
+            if len(constrs) == 0:
+                raise ValueError
+            obj_dict[column] = cls(
+                lower=constrs.get('lower'), 
+                upper=constrs.get('upper'),
+            )
+        return obj_dict
+
+
+@dataclass
 class DataColumns:
+    
     time_column: str='time_pattern'
     current_density_column: str='current_pattern'
     target_column: str='minimal_thickness'
     spray_column: str=None
 
+    constraints: dict[str, Constraint]=None
+
+    def __post_init__(self):
+        self._fitted_parameters = None
+
     @property
     def all_columns(self):
-        return [getattr(self, field) for field in  self.__pydantic_fields__.keys()]
+        return [
+            getattr(self, field) for field in  
+            self.__pydantic_fields__.keys() if 'column' in field
+        ]
 
     @property
     def relevant_columns(self):
         return [column for column in self.all_columns if column is not None]
     
     @property
-    def simple_linear_columns(self):
-        return [self.time_column, self.current_density_column]
+    def fitted_parameters(self):
+        if self._fitted_parameters is None:
+            return [self.time_column, self.current_density_column]
+        return self._fitted_parameters
+    
+    def set_fit_parameters(self, columns: list[str]):
+        self._fitted_parameters = columns
+    
+    def get_boundaries(self, columns: list[str]=None):
+    
+        if self.constraints is None:
+            return None
+        
+        bounds = []
+        for c in columns or self.fitted_parameters:
+            bounds.append(self.constraints.get(c, Constraint()))
+        
+        return [b.get() for b in bounds]
 
 
 THICKNESS_CALCULATIONS = {}
@@ -155,7 +202,7 @@ class ThicknessCalculation(ABC):
 class PlainLinearThicknessCalculation(ThicknessCalculation):
 
     def _pd_to_numpy(self, df: pd.DataFrame) -> np.array:
-        return df[self.data_columns.simple_linear_columns].values.T
+        return df[self.data_columns.fitted_parameters].values.T
 
     def _fit(
             self, 
