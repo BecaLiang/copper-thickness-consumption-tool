@@ -49,10 +49,13 @@ class Model:
             cid = self._select_calculator_idx(**kwargs)
             assert cid is not None
             calc = self.thickness_calculations[cid]
+            fixes = calc.extract_fixed_values(**kwargs)
+            print('FIXES', fixes, kwargs)
             return self.error_model(
                 calc, 
                 margin=margin or self.default_margin,
                 min_required=minimal_thickness,
                 p0=p0,
                 empirical_sigma=sigma,
+                fixes=fixes,
             )

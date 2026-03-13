@@ -5,11 +5,12 @@ from pydantic.dataclasses import dataclass
 import pandas as pd
 import numpy as np
 
-from copper_usage.sop_slicer import SOPSlicer
-from functools import wraps
+from typing import Any
 
-from scipy.stats import norm
-from scipy.optimize import curve_fit, minimize
+from copper_usage.sop_slicer import SOPSlicer
+from functools import wraps, partial
+
+from scipy.optimize import curve_fit
 
 
 @dataclass
@@ -40,7 +41,8 @@ class DataColumns:
     time_column: str='time_pattern'
     current_density_column: str='current_pattern'
     target_column: str='minimal_thickness'
-    spray_column: str=None
+    thickness_column: str | None=None
+    spray_column: str | None=None
 
     constraints: dict[str, Constraint]=None
 
@@ -64,8 +66,12 @@ class DataColumns:
             return [self.time_column, self.current_density_column]
         return self._fitted_parameters
     
-    def set_fit_parameters(self, columns: list[str]):
-        self._fitted_parameters = columns
+    def set_fit_parameters(self, columns: list[str], by_id: bool=True):
+        # raises AttributeError
+        if by_id:
+            self._fitted_parameters = [getattr(self, c) for c in columns]
+        else:
+            self._fitted_parameters = columns
     
     def get_boundaries(self, columns: list[str]=None):
     
@@ -94,6 +100,9 @@ def make_singles_scalar(f):
 
 
 class MathematicalThicknessModel(ABC):
+
+    def __init__(self, column_ids: list[str]=None):
+        self.columns = column_ids
     
     @abstractmethod
     def __call__(self, X: np.array, *args):
@@ -104,6 +113,12 @@ class PlainLinearModel(MathematicalThicknessModel):
 
     def __call__(self, X, slope, offset):
         return slope * X[0] * X[1] + offset
+
+
+class PlainLinearModelWithBoard(MathematicalThicknessModel):
+
+    def __call__(self, X, slope, offset):
+        return slope * X[0] * X[1] + X[2] + offset
 
 
 class ThicknessCalculation(ABC):
@@ -197,6 +212,12 @@ class ThicknessCalculation(ABC):
         dfproc = self.slicer.slice_data(df)
         # TODO assert not empty
         return self.predict(dfproc)
+    
+    def build_predict_from_list(self, **kwargs):
+        return self.predict_from_list
+    
+    def extract_fixed_values(self, **kwargs) -> dict[int, Any]:
+        return {}
 
 
 class PlainLinearThicknessCalculation(ThicknessCalculation):
@@ -235,7 +256,7 @@ class PlainLinearThicknessCalculation(ThicknessCalculation):
         
     def predict_from_list(self, X):
         return self.calc(X, *self.fitted_params)
-        
+
     # predict_for_optimization = partialmethod(predict_from_list)
 
     def _kwargs_to_numpy(self, **kwargs):
@@ -243,3 +264,31 @@ class PlainLinearThicknessCalculation(ThicknessCalculation):
     
     def get_uncertainty_of_x(self, X):
         pass
+
+
+class BoardInclusiveLinearThicknessCalculation(PlainLinearThicknessCalculation):
+
+    def build_predict_from_list(self, fixes: dict=None, **kwargs):
+
+        for to_fix, fix in (fixes or {}).items():
+            self._X0[to_fix] = fix
+        
+        def new_predict_from_list(X):
+            for to_fix, fix in (fixes or {}).items():
+                X[to_fix] = fix
+            return self.predict_from_list(X)
+        
+        return new_predict_from_list
+    
+    def extract_fixed_values(self, **kwargs):
+        
+        fix_position = self.data_columns.fitted_parameters.index(
+            self.data_columns.thickness_column
+        )
+        
+        try:
+            return {
+                fix_position: kwargs['thickness_column']
+            }
+        except KeyError:
+            return {}

@@ -91,14 +91,16 @@ class GaussianErrorModel(ErrorModel):
             min_required: float,
             p0: list[float]=None,
             empirical_sigma: float=None,
+            fixes: dict=None,
     ):
-        # or have a score-class with __call__
         score = MainScore()
         minim_res = minimize(
             partial(
                 # self.score, 
                 score,
-                calculator.predict_from_list,
+                calculator.build_predict_from_list(
+                    fixes=fixes or {}
+                ),
             ), 
             x0=p0 or calculator._X0,
             args=(margin, min_required, empirical_sigma or calculator._y_width),
