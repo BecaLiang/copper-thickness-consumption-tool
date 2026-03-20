@@ -60,8 +60,10 @@ class Model:
                 fixes=fixes,
             )
     
-    def get_mandatory_not_null(self):
+    def get_mandatory_not_null(self) -> list[str]:
         cols = []
         for tcalc in self.thickness_calculations:
              cols += tcalc.slicer.get_mandatory_not_null()
         return list(set(cols))
+    
+    

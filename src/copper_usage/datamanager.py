@@ -32,8 +32,13 @@ def register_pretransformation_step(name: str=None):
 @register_pretransformation_step('enforce_float')
 class EnforceFloat(PretransformationStep):
 
-    def __init__(self, column: str, *args, **kwargs):
-        self.column = column
+    def __init__(self, columns: str | list[str], *args, **kwargs):
+        if isinstance(columns, str):
+            self.columns = [columns]
+        elif isinstance(columns, list):
+            self.columns = columns
+        else:
+            raise TypeError
 
     def _enforce(self, X):
         try:
@@ -42,11 +47,16 @@ class EnforceFloat(PretransformationStep):
             return np.nan
 
     def apply(self, df, *args, **kwargs):
-        try:
-            df[self.column] = df[self.column].astype(float)
-        except ValueError:
-            df[self.column] = df[self.column].apply(self._enforce)
+
+        columns = list(set(df.columns) & set(self.columns))
+
+        for column in columns:
+            try:
+                df[column] = df[column].astype(float)
+            except ValueError:
+                df[column] = df[column].apply(self._enforce)
         return df
+        
     
 
 class Pretransformations:

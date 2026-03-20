@@ -1,4 +1,5 @@
 load_kwargs:
     sep: ';'
 cfg:
-    enforce_float: 'Pattern Plating_Spray Frequency|Copper (HZ)'
+    enforce_float:
+        - 'Pattern Plating_Spray Frequency|Copper (HZ)'
