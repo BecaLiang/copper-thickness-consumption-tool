@@ -72,6 +72,9 @@ class VCPLineRatioSlicer(SOPSlicer):
                 & (df[self.ratio_column] < self.ratio_max)
             ].copy()
         
+    def get_mandatory_not_null(self) -> list[str]:
+        return [self.ratio_column, self.vcp_column]
+        
     def is_in_charge(self, **kwargs) -> bool:
         is_vcp = kwargs.get(self.vcp_column, None)
         ratio_value = kwargs.get(self.ratio_column, None)

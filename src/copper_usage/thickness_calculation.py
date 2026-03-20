@@ -23,7 +23,9 @@ class Constraint:
         return [self.lower or -np.inf, self.upper or np.inf]
     
     @classmethod
-    def init_dict_from_dict(cls, constraints: dict[str, dict[str, float]]):
+    def init_dict_from_dict(cls, constraints: dict[str, dict[str, float]]=None):
+        if constraints is None:
+            return None
         obj_dict = {}
         for column, constrs in constraints.items():
             if len(constrs) == 0:
@@ -37,7 +39,7 @@ class Constraint:
 
 @dataclass
 class DataColumns:
-    
+
     time_column: str='time_pattern'
     current_density_column: str='current_pattern'
     target_column: str='minimal_thickness'
@@ -46,8 +48,27 @@ class DataColumns:
 
     constraints: dict[str, Constraint]=None
 
-    def __post_init__(self):
-        self._fitted_parameters = None
+    _fitted_parameters: list[str] | None=None
+
+    @classmethod
+    def init_from_config(cls, cfg: dict=None, *args, **kwargs):
+        
+        if cfg is None:
+            return cls()
+        
+        obj = cls(
+            time_column = cfg.get('time_column', cls.time_column),
+            current_density_column = cfg.get('current_density_column', cls.current_density_column),
+            target_column = cfg.get('target_column', cls.target_column),
+            thickness_column = cfg.get('thickness_column', cls.thickness_column),
+            spray_column = cfg.get('spray_column', cls.spray_column),
+            constraints = Constraint.init_dict_from_dict(
+                cfg.get('constraints', {})
+            ),
+        )
+        obj.set_fit_parameters(cfg.get('fit_parameters', []))
+        
+        return obj
 
     @property
     def all_columns(self):
@@ -85,6 +106,7 @@ class DataColumns:
         return [b.get() for b in bounds]
 
 
+MATHMODELS = {}
 THICKNESS_CALCULATIONS = {}
 
 
@@ -99,9 +121,27 @@ def make_singles_scalar(f):
     return inner_function
 
 
+def register_calculator(name: str=None):
+    def decorator(cls):
+        key = name or cls.__name__.lower()
+        THICKNESS_CALCULATIONS[key] = cls
+        return cls
+    return decorator
+
+
+def register_mathmodel(name: str=None):
+    def decorator(cls):
+        key = name or cls.__name__.lower()
+        MATHMODELS[key] = cls
+        return cls
+    return decorator
+
+
 class MathematicalThicknessModel(ABC):
 
-    def __init__(self, column_ids: list[str]=None):
+    default_start_values: list[float]=None
+
+    def __init__(self, column_ids: dict[str, int]=None):
         self.columns = column_ids
     
     @abstractmethod
@@ -109,16 +149,31 @@ class MathematicalThicknessModel(ABC):
         pass
 
 
+@register_mathmodel('plain_linear')
 class PlainLinearModel(MathematicalThicknessModel):
+
+    default_start_values = [1, 0]
 
     def __call__(self, X, slope, offset):
         return slope * X[0] * X[1] + offset
 
 
+@register_mathmodel('linear_board')
 class PlainLinearModelWithBoard(MathematicalThicknessModel):
 
-    def __call__(self, X, slope, offset):
-        return slope * X[0] * X[1] + X[2] + offset
+    default_start_values = [1, 1, 0]
+
+    def __call__(self, X, slope, bthick, offset):
+        return slope * X[0] * X[1] + bthick * X[2] + offset
+
+
+@register_mathmodel('linear_board_and_spray')
+class PlainLinearModelWithBoardAndSpray(MathematicalThicknessModel):
+
+    default_start_values = [1, 1, 1, 0]
+
+    def __call__(self, X, slope, bthick, pspray, offset):
+        return slope * X[0] * X[1] + bthick * X[2] + pspray * X[3] + offset
 
 
 class ThicknessCalculation(ABC):
@@ -220,6 +275,7 @@ class ThicknessCalculation(ABC):
         return {}
 
 
+@register_calculator('plain_linear_calculation')
 class PlainLinearThicknessCalculation(ThicknessCalculation):
 
     def _pd_to_numpy(self, df: pd.DataFrame) -> np.array:
@@ -266,7 +322,10 @@ class PlainLinearThicknessCalculation(ThicknessCalculation):
         pass
 
 
+@register_calculator('board_linear_calculation')
 class BoardInclusiveLinearThicknessCalculation(PlainLinearThicknessCalculation):
+
+    fit_parameters = ['time_column', 'current_density_column', 'thickness_column']
 
     def build_predict_from_list(self, fixes: dict=None, **kwargs):
 
