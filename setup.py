@@ -8,6 +8,11 @@ required_packages = [
     'numpy',
     'pandas',
     'scipy',
+    'streamlit',
+    'seaborn',
+    'openpyxl',
+    'joblib',
+    'matplotlib'
 ]
 
 
