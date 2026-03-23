@@ -50,18 +50,18 @@ class DataColumns:
         self._fitted_parameters = None
 
     @property
-    def all_columns(self):
+    def all_columns(self) -> list[str]:
         return [
             getattr(self, field) for field in  
             self.__pydantic_fields__.keys() if 'column' in field
         ]
 
     @property
-    def relevant_columns(self):
+    def relevant_columns(self) -> list[str]:
         return [column for column in self.all_columns if column is not None]
     
     @property
-    def fitted_parameters(self):
+    def fitted_parameters(self) -> list[str]:
         if self._fitted_parameters is None:
             return [self.time_column, self.current_density_column]
         return self._fitted_parameters
@@ -73,7 +73,7 @@ class DataColumns:
         else:
             self._fitted_parameters = columns
     
-    def get_boundaries(self, columns: list[str]=None):
+    def get_boundaries(self, columns: list[str]=None) -> list[list[int]]:
     
         if self.constraints is None:
             return None
@@ -268,7 +268,7 @@ class PlainLinearThicknessCalculation(ThicknessCalculation):
 
 class BoardInclusiveLinearThicknessCalculation(PlainLinearThicknessCalculation):
 
-    def build_predict_from_list(self, fixes: dict=None, **kwargs):
+    def build_predict_from_list(self, fixes: dict=None, **kwargs) -> list[dict[int, Any]]:
 
         for to_fix, fix in (fixes or {}).items():
             self._X0[to_fix] = fix
@@ -280,7 +280,7 @@ class BoardInclusiveLinearThicknessCalculation(PlainLinearThicknessCalculation):
         
         return new_predict_from_list
     
-    def extract_fixed_values(self, **kwargs):
+    def extract_fixed_values(self, **kwargs) -> dict[int, Any]:
         
         fix_position = self.data_columns.fitted_parameters.index(
             self.data_columns.thickness_column
