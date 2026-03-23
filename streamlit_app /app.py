@@ -22,5 +22,5 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.title("⚙️ Copper Plating Thickness Recommender")
-st.caption(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M')} | Contact: DI Team")
+st.title("⚙️ Copper Plating Thickness Prediction Model (Testing)")
+st.caption(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
