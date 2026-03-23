@@ -17,10 +17,9 @@ from copper_usage.inverter import GaussianErrorModel
 
 st.set_page_config(
     page_title="Copper Thickness Recommender (Testing)",
-    page_icon="⚙️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-st.title("⚙️ Copper Plating Thickness Recommender (Testing)")
+st.title("Copper Plating Thickness Recommender (Testing)")
 st.caption(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
