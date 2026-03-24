@@ -6,31 +6,43 @@ slices:
     overflow: True
 vcp:
     data_columns:
-        thickness_column: 'Board Thickness (mm)'
-        spray_column: 'Pattern Plating_Spray Frequency|Copper (HZ)'
+        board_thickness: 'Board Thickness (mm)'
+        spray_frequency: 'Pattern Plating_Spray Frequency|Copper (HZ)'
+        target: minimal_thickness
+        current_density: 'Pattern Plating_Copper Current Density'
+        plating_time: 'Pattern Plating_Copper Plating Time (min)'
         constraints:
-            current_pattern:
+            current_density:
                 lower: 17
                 upper: 21
+            spray_frequency:
+                lower: 0
+            plating_time:
+                lower: 30
         fit_parameters:
-            - time_column
-            - current_density_column
-            - thickness_column
-            - spray_column
+            - plating_time
+            - current_density
+            - board_thickness
+            - spray_frequency
     calculation_model: board_linear_calculation
     fit_model: 'linear_board_and_spray'
     start_values: [0.1, 1, 1, 1]
 non_vcp:
     data_columns:
-        thickness_column: 'Board Thickness (mm)'
+        board_thickness: 'Board Thickness (mm)'
+        target: minimal_thickness
+        current_density: 'Pattern Plating_Copper Current Density'
+        plating_time: 'Pattern Plating_Copper Plating Time (min)'
         constraints:
             current_pattern:
                 lower: 17
                 upper: 21
+            plating_time:
+                lower: 30
         fit_parameters:
-            - time_column
-            - current_density_column
-            - thickness_column
+            - plating_time
+            - current_density
+            - board_thickness
     calculation_model: board_linear_calculation
     fit_model: 'linear_board'
     start_values: [0.1, 1, 1]

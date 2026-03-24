@@ -1,13 +1,11 @@
-from copper_usage.thickness_calculation import (
-    PlainLinearThicknessCalculation,
-    ThicknessCalculation,
-)
-from copper_usage.sop_slicer import SOPSlicer
+from copper_usage.thickness_calculation import ThicknessCalculation
+
 from copper_usage.inverter import (
     ErrorModel,
     GaussianErrorModel,
     ParameterFitResult,
 )
+from copper_usage.feature_containers import BoardFeatureContainer
 
 import pandas as pd
 
@@ -38,20 +36,29 @@ class Model:
         for tc in self.thickness_calculations:
             tc.fit(df, verbose=verbose)
 
+    def predict(self, board: BoardFeatureContainer):
+        return self.predict_single_board(
+            minimal_thickness=board.minimal_thickness,
+            margin=board.margin,
+            is_vcp=board.is_vcp,
+            Ratio=board.Ratio,
+            board_thickness=board.board_thickness,
+        )
+
     def predict_single_board(
             self, 
             minimal_thickness: float,
             margin: float=None,
             p0: list[float]=None,
             sigma: float=None,
+            fix_columns: list[str]=['board_thickness'],
             **kwargs,
         ) -> ParameterFitResult:
             cid = self._select_calculator_idx(**kwargs)
             assert cid is not None
             calc = self.thickness_calculations[cid]
-            fixes = calc.extract_fixed_values(**kwargs)
-
-            return self.error_model(
+            fixes = calc.extract_fixed_values(fix_columns, **kwargs)
+            fitted_parameters = self.error_model(
                 calc, 
                 margin=margin or self.default_margin,
                 min_required=minimal_thickness,
@@ -59,11 +66,14 @@ class Model:
                 empirical_sigma=sigma,
                 fixes=fixes,
             )
-    
+            result = calc.data_columns.spawn_board_features(
+                fitted_values=fitted_parameters.params,
+                fixes=fixes,
+            )
+            return result
+
     def get_mandatory_not_null(self) -> list[str]:
         cols = []
         for tcalc in self.thickness_calculations:
              cols += tcalc.slicer.get_mandatory_not_null()
         return list(set(cols))
-    
-    

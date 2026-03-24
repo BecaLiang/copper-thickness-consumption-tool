@@ -1,16 +1,16 @@
 from abc import ABC, abstractmethod
 
 from pydantic.dataclasses import dataclass
+from scipy.optimize import curve_fit
 
 import pandas as pd
 import numpy as np
 
 from typing import Any
+from functools import wraps
 
+from copper_usage.feature_containers import MachineFeatureContainer
 from copper_usage.sop_slicer import SOPSlicer
-from functools import wraps, partial
-
-from scipy.optimize import curve_fit
 
 
 @dataclass
@@ -35,67 +35,146 @@ class Constraint:
                 upper=constrs.get('upper'),
             )
         return obj_dict
+    
+
+@dataclass
+class FitValue:
+    name: str
+    column: str | None = None
+
+
+@dataclass
+class FitValueCollection:
+    
+    fit_values: list[FitValue]
+    _fit_parameters: list[str] | None = None
+    _value_column_map: dict[str, str] | None = None
+
+    @staticmethod
+    def default_fit_parameters() -> list[str]:
+        return [
+            'plating_time', 
+            'current_density', 
+            'board_thickness', 
+            'spray_frequency', 
+            'target',
+        ]
+
+    @classmethod
+    def spawn_from_defaults(cls):
+        return cls([FitValue(fp) for fp in cls.default_fit_parameters()])
+    
+    @classmethod
+    def spawn_from_dict(cls, cfg):
+        return cls(
+            [
+                FitValue(key, column=value) for key, value in cfg.items()
+            ]
+        )
+
+    def __post_init__(self):
+        self._value_column_map = {
+            fv.name: fv.column for fv in self.fit_values
+        }
+        if self._fit_parameters is not None:
+            assert all(fp in self._value_column_map for fp in self._fit_parameters)
+
+    def __contains__(self, item: str | FitValue):
+        if isinstance(item, str):
+            return item in [fv.name for fv in self.fit_values]
+        elif isinstance(item, FitValue):
+            return item.name in [fv.name for fv in self.fit_values]
+        else:
+            raise TypeError
+    
+    def get_column(self, name: str):
+        return self._value_column_map.get(name)
+
+    @property
+    def fit_parameters(self):
+        if self._fit_parameters is None:
+            self._fit_parameters = [fv.name for fv in self.fit_values]
+        return self._fit_parameters
+    
+    def columns(self, only_fit: bool=False) -> list[str]:
+        if only_fit:
+            return [self.get_column(fp) for fp in self.fit_parameters]
+        else:
+            return [fv.column for fv in self.fit_values]
 
 
 @dataclass
 class DataColumns:
 
-    time_column: str='time_pattern'
-    current_density_column: str='current_pattern'
-    target_column: str='minimal_thickness'
-    thickness_column: str | None=None
-    spray_column: str | None=None
-
+    fit_values: FitValueCollection
     constraints: dict[str, Constraint]=None
-
     _fitted_parameters: list[str] | None=None
+    _fit_values: FitValueCollection | None=None
+
+    def __post_init__(self):
+        if self._fit_values is None:
+            self._fit_values = FitValueCollection.spawn_from_defaults()
 
     @classmethod
     def init_from_config(cls, cfg: dict=None, *args, **kwargs):
-        
-        if cfg is None:
-            return cls()
-        
-        obj = cls(
-            time_column = cfg.get('time_column', cls.time_column),
-            current_density_column = cfg.get('current_density_column', cls.current_density_column),
-            target_column = cfg.get('target_column', cls.target_column),
-            thickness_column = cfg.get('thickness_column', cls.thickness_column),
-            spray_column = cfg.get('spray_column', cls.spray_column),
-            constraints = Constraint.init_dict_from_dict(
+
+        fullinfo = {fp: cfg.get(fp) for fp in FitValueCollection.default_fit_parameters()}
+        fvc = FitValueCollection.spawn_from_dict(
+            {k: v for k, v in fullinfo.items() if v is not None}
+        )
+        obj = cls( 
+            fvc,
                 cfg.get('constraints', {})
-            ),
         )
         obj.set_fit_parameters(cfg.get('fit_parameters', []))
-        
+
         return obj
 
-    @property
-    def all_columns(self):
-        return [
-            getattr(self, field) for field in  
-            self.__pydantic_fields__.keys() if 'column' in field
-        ]
+    def spawn_board_features(
+            self, 
+            fitted_values: list[float], 
+            fixes: dict=None,
+        ) -> MachineFeatureContainer:
+
+        bfc_kwargs = {
+            p: v for p, v in zip(self.fitted_parameters, fitted_values)
+        }
+        return MachineFeatureContainer(**bfc_kwargs)
 
     @property
-    def relevant_columns(self):
-        return [column for column in self.all_columns if column is not None]
+    def all_columns(self) -> list[str]:
+        return self.fit_values.columns()
+
+    @property
+    def relevant_columns(self) -> list[str]:
+        return self.fit_columns + [self.fit_values.get_column('target')]
     
     @property
-    def fitted_parameters(self):
+    def fitted_parameters(self) -> list[str]:
         if self._fitted_parameters is None:
-            return [self.time_column, self.current_density_column]
+            return [
+                'plating_time',
+                'current_density',
+            ]
         return self._fitted_parameters
     
-    def set_fit_parameters(self, columns: list[str], by_id: bool=True):
-        # raises AttributeError
-        if by_id:
-            self._fitted_parameters = [getattr(self, c) for c in columns]
-        else:
-            self._fitted_parameters = columns
+    @property
+    def fit_columns(self) -> list[str]:
+        return [
+            self.fit_values.get_column(fp) for fp in self.fitted_parameters
+        ]
     
-    def get_boundaries(self, columns: list[str]=None):
+    @property
+    def target_column(self) -> str:
+        return self.fit_values.get_column('target')
     
+    def set_fit_parameters(self, fit_value_names: list[str]):
+        self._fitted_parameters = [
+            fname for fname in fit_value_names if fname in self.fit_values
+        ]
+    
+    def get_boundaries(self, columns: list[str]=None) -> list[list[int]]:
+
         if self.constraints is None:
             return None
         
@@ -215,6 +294,7 @@ class ThicknessCalculation(ABC):
         pass
 
     def clean_data(self, df: pd.DataFrame, verbose: float=False):
+        
         dfproc = self.slicer.slice_data(df)
         dfnotNull = dfproc[
             ~dfproc[self.data_columns.relevant_columns]
@@ -279,7 +359,7 @@ class ThicknessCalculation(ABC):
 class PlainLinearThicknessCalculation(ThicknessCalculation):
 
     def _pd_to_numpy(self, df: pd.DataFrame) -> np.array:
-        return df[self.data_columns.fitted_parameters].values.T
+        return df[self.data_columns.fit_columns].values.T
 
     def _fit(
             self, 
@@ -327,7 +407,7 @@ class BoardInclusiveLinearThicknessCalculation(PlainLinearThicknessCalculation):
 
     fit_parameters = ['time_column', 'current_density_column', 'thickness_column']
 
-    def build_predict_from_list(self, fixes: dict=None, **kwargs):
+    def build_predict_from_list(self, fixes: dict=None, **kwargs) -> list[dict[int, Any]]:
 
         for to_fix, fix in (fixes or {}).items():
             self._X0[to_fix] = fix
@@ -339,15 +419,16 @@ class BoardInclusiveLinearThicknessCalculation(PlainLinearThicknessCalculation):
         
         return new_predict_from_list
     
-    def extract_fixed_values(self, **kwargs):
-        
-        fix_position = self.data_columns.fitted_parameters.index(
-            self.data_columns.thickness_column
-        )
-        
-        try:
-            return {
-                fix_position: kwargs['thickness_column']
-            }
-        except KeyError:
+    def extract_fixed_values(self, fix_columns: list[str]=None, **kwargs) -> dict[int, Any]:
+
+        if fix_columns is None:
             return {}
+
+        fix_positions = {
+            self.data_columns.fitted_parameters.index(
+                fc
+            ): kwargs[fc]
+            for fc in fix_columns
+        }
+
+        return fix_positions

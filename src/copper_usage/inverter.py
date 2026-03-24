@@ -31,12 +31,12 @@ class ParameterFitResult:
     def hessian(self):
         return np.linalg.inv(self.inv_hessian)
     
-    def is_hessian_regular(self):
+    def is_hessian_regular(self) -> bool:
         if np.all(self.inv_hessian == np.diag(self.dimension)):
             return False
         return int(np.linalg.matrix_rank(self.inv_hessian)) == self.dimension
 
-    def calculate_distance(self, point: np.ndarray):
+    def calculate_distance(self, point: np.ndarray) -> float:
         # use with caution; the formula is a (valid!) approximation around the minimum
         if isinstance(point, (list, tuple)):
             point = np.array(point)
@@ -74,7 +74,7 @@ class Score(ABC):
 
 class MainScore(Score):
 
-    def __call__(self, predict, xs, y, minreq, sigma_v):
+    def __call__(self, predict, xs, y, minreq, sigma_v) -> float:
         N = norm.cdf(minreq, predict(xs), sigma_v)
         return (N - y) ** 2
 
@@ -92,7 +92,7 @@ class GaussianErrorModel(ErrorModel):
             p0: list[float]=None,
             empirical_sigma: float=None,
             fixes: dict=None,
-    ):
+    ) -> ParameterFitResult:
         score = MainScore()
         minim_res = minimize(
             partial(

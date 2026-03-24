@@ -48,13 +48,13 @@ class VCPLineRatioSlicer(SOPSlicer):
     def __post_init__(self):
         assert self.ratio_min < self.ratio_max
 
-    def __lt__(self, rhs):
+    def __lt__(self, rhs) -> bool:
         if self.is_vcp == rhs.is_vcp:
             return self.ratio_min < rhs.ratio_min
         else:
             return rhs.is_vcp
         
-    def __str__(self):
+    def __str__(self) -> str:
         vcp_info = 'NON-VCP' if not self.is_vcp else 'VCP'
         return f'{vcp_info} / {self.ratio_column}: [{self.ratio_min:.1f}, {self.ratio_max:.1f})'
 
