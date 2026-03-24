@@ -7,12 +7,7 @@ required_packages = [
     'pytest',
     'numpy',
     'pandas',
-    'scipy',
-    'streamlit',
-    'seaborn',
-    'openpyxl',
-    'joblib',
-    'matplotlib'
+    'scipy'
 ]
 
 
