@@ -143,9 +143,6 @@ class TrainingsDataManager:
             if not cfg_path.is_file() else cfg_path
 
         with open(cfg_path, 'r') as yin:
-            print(yaml.safe_load(yin))
-
-        with open(cfg_path, 'r') as yin:
 
             return cls.init_from_file_and_model(
                 model=model,

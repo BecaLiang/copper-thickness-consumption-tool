@@ -5,10 +5,7 @@ from copper_usage.inverter import (
     GaussianErrorModel,
     ParameterFitResult,
 )
-from copper_usage.feature_containers import (
-    MachineFeatureContainer, 
-    BoardFeatureContainer,
-)
+from copper_usage.feature_containers import BoardFeatureContainer
 
 import pandas as pd
 
@@ -45,7 +42,7 @@ class Model:
             margin=board.margin,
             is_vcp=board.is_vcp,
             Ratio=board.Ratio,
-            thickness=board.thickness,
+            board_thickness=board.board_thickness,
         )
 
     def predict_single_board(

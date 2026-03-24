@@ -139,7 +139,6 @@ class DataColumns:
         bfc_kwargs = {
             p: v for p, v in zip(self.fitted_parameters, fitted_values)
         }
-
         return MachineFeatureContainer(**bfc_kwargs)
 
     @property
