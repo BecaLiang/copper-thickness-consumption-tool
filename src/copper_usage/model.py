@@ -50,7 +50,7 @@ class Model:
             assert cid is not None
             calc = self.thickness_calculations[cid]
             fixes = calc.extract_fixed_values(**kwargs)
-            print('FIXES', fixes, kwargs)
+
             return self.error_model(
                 calc, 
                 margin=margin or self.default_margin,
@@ -59,3 +59,11 @@ class Model:
                 empirical_sigma=sigma,
                 fixes=fixes,
             )
+    
+    def get_mandatory_not_null(self) -> list[str]:
+        cols = []
+        for tcalc in self.thickness_calculations:
+             cols += tcalc.slicer.get_mandatory_not_null()
+        return list(set(cols))
+    
+    
