@@ -17,6 +17,7 @@ vcp:
                 upper: 21
             spray_frequency:
                 lower: 0
+                upper: 30
             plating_time:
                 lower: 30
         fit_parameters:

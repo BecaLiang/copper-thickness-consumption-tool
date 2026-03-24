@@ -20,10 +20,16 @@ class Constraint:
     upper: float | None=None
 
     def get(self):
-        return [self.lower or -np.inf, self.upper or np.inf]
+        return [
+            -np.inf if self.lower is None else self.lower, 
+            np.inf if self.upper is None else self.upper, 
+        ]
     
     @classmethod
-    def init_dict_from_dict(cls, constraints: dict[str, dict[str, float]]=None):
+    def init_dict_from_dict(
+        cls, 
+        constraints: dict[str, dict[str, float]]=None
+    ):
         if constraints is None:
             return None
         obj_dict = {}
@@ -83,7 +89,9 @@ class FitValueCollection:
         if isinstance(item, str):
             return item in [fv.name for fv in self.fit_values]
         elif isinstance(item, FitValue):
-            return item.name in [fv.name for fv in self.fit_values]
+            if item.name not in [fv.name for fv in self.fit_values]:
+                return False
+            return self._value_column_map[item.name] == item.column
         else:
             raise TypeError
     
@@ -181,7 +189,6 @@ class DataColumns:
         bounds = []
         for c in columns or self.fitted_parameters:
             bounds.append(self.constraints.get(c, Constraint()))
-        
         return [b.get() for b in bounds]
 
 

@@ -1,10 +1,10 @@
 from pydantic.dataclasses import dataclass
-from pydantic import PositiveFloat
+from pydantic import PositiveFloat, confloat
 
 
 @dataclass
 class BoardFeatureContainer:
-    margin: PositiveFloat
+    margin: confloat(gt=0, lt=1)
     minimal_thickness: PositiveFloat
     is_vcp: bool
     Ratio: PositiveFloat
