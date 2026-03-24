@@ -41,11 +41,11 @@ class Model:
 
     def predict(self, board: BoardFeatureContainer):
         return self.predict_single_board(
-            minimal_thickness=BoardFeatureContainer.minimal_thickness,
-            margin=BoardFeatureContainer.margin,
-            is_vcp=BoardFeatureContainer.is_vcp,
-            Ratio=BoardFeatureContainer.Ratio,
-            thickness=BoardFeatureContainer.thickness,
+            minimal_thickness=board.minimal_thickness,
+            margin=board.margin,
+            is_vcp=board.is_vcp,
+            Ratio=board.Ratio,
+            thickness=board.thickness,
         )
 
     def predict_single_board(
@@ -54,12 +54,13 @@ class Model:
             margin: float=None,
             p0: list[float]=None,
             sigma: float=None,
+            fix_columns: list[str]=['board_thickness'],
             **kwargs,
         ) -> ParameterFitResult:
             cid = self._select_calculator_idx(**kwargs)
             assert cid is not None
             calc = self.thickness_calculations[cid]
-            fixes = calc.extract_fixed_values(**kwargs)
+            fixes = calc.extract_fixed_values(fix_columns, **kwargs)
             fitted_parameters = self.error_model(
                 calc, 
                 margin=margin or self.default_margin,
@@ -68,11 +69,14 @@ class Model:
                 empirical_sigma=sigma,
                 fixes=fixes,
             )
-    
+            result = calc.data_columns.spawn_board_features(
+                fitted_values=fitted_parameters.params,
+                fixes=fixes,
+            )
+            return result
+
     def get_mandatory_not_null(self) -> list[str]:
         cols = []
         for tcalc in self.thickness_calculations:
              cols += tcalc.slicer.get_mandatory_not_null()
         return list(set(cols))
-    
-    
