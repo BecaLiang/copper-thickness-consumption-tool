@@ -3,11 +3,9 @@ import pytest
 import numpy as np
 import pandas as pd
 
+from copper_usage.data_columns import DataColumns, FitValue, FitValueCollection
 from copper_usage.thickness_calculation import (
-    FitValue,
-    FitValueCollection,
     PlainLinearThicknessCalculation,
-    DataColumns,
     PlainLinearModel,
 )
 from copper_usage.sop_slicer import VCPLineRatioSlicer

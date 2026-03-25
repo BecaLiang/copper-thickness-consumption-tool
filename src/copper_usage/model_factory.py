@@ -2,10 +2,10 @@ import yaml
 
 from pathlib import Path
 
+from copper_usage.DataColumns import DataColumns
 from copper_usage.thickness_calculation import (
     MATHMODELS,
     THICKNESS_CALCULATIONS,
-    DataColumns,
     PlainLinearThicknessCalculation,
 )
 from copper_usage.inverter import GaussianErrorModel

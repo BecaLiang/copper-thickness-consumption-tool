@@ -2,16 +2,19 @@ import pytest
 
 import numpy as np
 
-from copper_usage.thickness_calculation import (
-    Constraint,
-    FitValue,
+from copper_usage.data_columns import (
+    Constraint, 
+    DataColumns, 
+    FitValue, 
     FitValueCollection,
-    DataColumns,
+)
+from copper_usage.thickness_calculation import (
     PlainLinearModel,
+    PlainLinearModelWithBoard,
+    PlainLinearModelWithBoardAndSpray,
     ThicknessCalculation,
     PlainLinearThicknessCalculation,
 )
-from copper_usage.sop_slicer import VCPLineRatioSlicer
 
 from pydantic import ValidationError
 
@@ -20,6 +23,18 @@ def test_plain_linear_model():
     m = PlainLinearModel()
     assert m([1, 3], 2, 0.5) == 6.5
     assert m([2, -1], 1.5, 1) == -2.
+
+
+def test_plain_linear_with_board():
+    m = PlainLinearModelWithBoard()
+    assert m([1, 2, 0.5], slope=3, bthick=1, offset=-1) == 5.5
+    assert m([2, 1, 1], slope=0.5, bthick=2, offset=1) == 4.
+
+
+def test_plain_linear_with_board_and_spray():
+    m = PlainLinearModelWithBoardAndSpray()
+    assert m([1, 2, 1, 0.5], slope=3, bthick=1, pspray=-2, offset=-1) == 5.
+    assert m([2, 1, 0, 1], slope=0.5, bthick=2, pspray=1, offset=1) == 3.
 
 
 def test_constraints():
@@ -79,4 +94,72 @@ def test_fit_value_colletion():
 
 
 def test_data_columns():
-    pass
+    
+    dc1 = DataColumns(
+        fit_values=FitValueCollection(
+            [
+                FitValue('thickness', column='board thickness'),
+                FitValue('duration', column='plating time'),
+                FitValue('current', column='ampere value'),
+                FitValue('target', column='minimal pattern thickness'),
+            ]
+        ),
+    )
+    
+    assert dc1.all_columns == ['board thickness', 'plating time', 'ampere value', 'minimal pattern thickness']
+    dc1.set_fit_parameters(['thickness', 'duration'])
+    assert dc1.fit_columns == ['board thickness', 'plating time']
+    assert dc1.relevant_columns == ['board thickness', 'plating time', 'minimal pattern thickness']
+    assert dc1.target_column == 'minimal pattern thickness'
+    assert dc1.get_boundaries() is None
+
+    dc2 = DataColumns(
+        fit_values=FitValueCollection(
+            [
+                FitValue('thickness', column='board thickness'),
+                FitValue('duration', column='plating time'),
+                FitValue('current', column='ampere value'),
+                FitValue('the_target', column='minimal pattern thickness'),
+            ]
+        ),
+    )
+
+    with pytest.raises(KeyError):
+        dc2.target_column
+
+    with pytest.raises(KeyError):
+        dc2.relevant_columns
+
+
+def test_datacolumns_init():
+
+    cfg = {
+        'thickness': 'board thickness',
+        'duration': 'plating time',
+        'current': 'ampere value',
+        'target': 'minimal pattern thickness',
+        'constraints': {
+            'thickness': {'lower': 0},
+            'duration': {'lower': 0},
+            'current': {'lower': -10, 'upper': 10},
+        },
+        'fit_parameters': ['thickness', 'duration'],
+    }
+
+    dc1 = DataColumns.init_from_config(cfg)
+    assert dc1.fit_columns == ['board thickness', 'plating time']
+    assert dc1.relevant_columns == ['board thickness', 'plating time', 'minimal pattern thickness']
+    assert dc1.target_column == 'minimal pattern thickness'
+
+    dc2 = DataColumns.init_from_config(
+        {
+            'plating_time': 'plating time',
+            'current_density': 'all of the amperes',
+            'board_thickness': 'board thickness mean',
+            'target': 'big profit',
+            'fit_parameters': ['board_thickness', 'plating_time']
+        }, 
+        use_default=True,
+    )
+    assert dc2.fit_columns == ['board thickness mean', 'plating time']
+    assert dc2.relevant_columns == ['board thickness mean', 'plating time', 'big profit']
