@@ -220,8 +220,6 @@ class PlainLinearThicknessCalculation(ThicknessCalculation):
     def predict_from_list(self, X):
         return self.calc(X, *self.fitted_params)
 
-    # predict_for_optimization = partialmethod(predict_from_list)
-
     def _kwargs_to_numpy(self, **kwargs):
         return np.array([kwargs[lc] for lc in self.simple_linear_column])
     
@@ -231,8 +229,6 @@ class PlainLinearThicknessCalculation(ThicknessCalculation):
 
 @register_calculator('board_linear_calculation')
 class BoardInclusiveLinearThicknessCalculation(PlainLinearThicknessCalculation):
-
-    fit_parameters = ['time_column', 'current_density_column', 'thickness_column']
 
     def build_predict_from_list(self, fixes: dict=None, **kwargs) -> list[dict[int, Any]]:
 
@@ -245,8 +241,10 @@ class BoardInclusiveLinearThicknessCalculation(PlainLinearThicknessCalculation):
             return self.predict_from_list(X)
         
         return new_predict_from_list
-    
+
     def extract_fixed_values(self, fix_columns: list[str]=None, **kwargs) -> dict[int, Any]:
+
+        assert isinstance(fix_columns, list)
 
         if fix_columns is None:
             return {}

@@ -2,7 +2,7 @@ import yaml
 
 from pathlib import Path
 
-from copper_usage.DataColumns import DataColumns
+from copper_usage.data_columns import DataColumns
 from copper_usage.thickness_calculation import (
     MATHMODELS,
     THICKNESS_CALCULATIONS,
@@ -38,7 +38,10 @@ class ModelFactory:
             data_columns = columns,
             data_slicer = slicer,
             calc = math_calc,
-            start_values = cfg.get('start_values', math_calc.default_start_values),
+            start_values = cfg.get(
+                'start_values', 
+                math_calc.default_start_values
+            ),
         )
 
     @staticmethod
