@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: copper_usage
+Version: 0.0.0
+Author: Johannes Grygier, Beca Liang
+Requires-Dist: pyyaml
+Requires-Dist: pydantic
+Requires-Dist: pytest
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: scipy
+Dynamic: author
+Dynamic: requires-dist

@@ -1,0 +1,6 @@
+pyyaml
+pydantic
+pytest
+numpy
+pandas
+scipy
