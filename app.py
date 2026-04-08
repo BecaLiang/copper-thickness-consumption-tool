@@ -10,9 +10,10 @@ import traceback
 from pathlib import Path
 from PIL import Image
 
-# Add paths
-sys.path.append(os.path.dirname(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+# Add paths - use relative paths
+current_dir = Path(__file__).resolve().parent
+sys.path.append(str(current_dir))
+sys.path.insert(0, str(current_dir / 'src'))
 
 from stg_colors import stg_color, ColorSet
 from copper_usage.feature_containers import BoardFeatureContainer, MachineFeatureContainer
@@ -21,8 +22,12 @@ from copper_usage.datamanager import TrainingsDataManager
 
 PACKAGES_AVAILABLE = True
 
-logo_path = r"C:\Users\Beca.Liang\copper_usage\Logo Blue Slogan.jpg"
-logo_exists = os.path.exists(logo_path)
+# Logo path - use relative path
+logo_path = current_dir / "Logo Blue Slogan.jpg"
+logo_exists = logo_path.exists()
+
+# Fixed safety margin - 5%
+FIXED_MARGIN = 0.05
 
 # Company colors with depth variations
 COLOR_BLUE_1 = stg_color('blue', depth=1)      # '#002D74'
@@ -49,8 +54,8 @@ TEXTS = {
         '中文': '镀铜工艺优化器'
     },
     'subtitle': {
-        'English': 'AI-powered optimization for pattern plating with probabilistic safety margins',
-        '中文': '基于人工智能的图形电镀工艺优化，包含概率安全裕度'
+        'English': 'AI-powered optimization for pattern plating',
+        '中文': '基于人工智能的图形电镀工艺优化'
     },
     'company': {
         'English': 'JST · STARTEAM GLOBAL',
@@ -96,25 +101,13 @@ TEXTS = {
         'English': 'Formula: board thickness / hole diameter',
         '中文': '公式：板厚 / 孔径'
     },
-    'target_thickness': {
-        'English': 'Target Copper Thickness',
-        '中文': '目标铜厚'
+    'required_thickness': {
+        'English': 'Customer Required Thickness',
+        '中文': '客户要求铜厚'
     },
     'unit_micrometer': {
         'English': 'Unit: micrometers (μm)',
         '中文': '单位：微米 (μm)'
-    },
-    'risk_tolerance': {
-        'English': 'Risk Tolerance (Safety Margin)',
-        '中文': '风险容忍度 (安全裕度)'
-    },
-    'risk_assessment': {
-        'English': 'Risk Assessment',
-        '中文': '风险评估'
-    },
-    'chance_below': {
-        'English': 'chance of being below requirement',
-        '中文': '概率低于要求'
     },
     'calculate_button': {
         'English': 'Calculate Optimal Parameters',
@@ -247,14 +240,6 @@ st.markdown(f"""
         margin-bottom: 0.5rem;
     }}
     
-    .sub-header {{
-        font-size: 1rem;
-        color: {COLOR_GRAY_1};
-        text-align: center;
-        font-weight: 400;
-        margin-bottom: 1rem;
-    }}
-    
     .result-card {{
         background: {COLOR_WHITE};
         padding: 1.5rem;
@@ -328,6 +313,7 @@ st.markdown(f"""
     
     .stDownloadButton > button {{
         background: {COLOR_GRAY_1};
+        color: {COLOR_WHITE} !important;
     }}
     
     .stDownloadButton > button:hover {{
@@ -355,15 +341,6 @@ st.markdown(f"""
     
     .stSlider > div > div > div > div {{
         background-color: {COLOR_BLUE_2};
-    }}
-    
-    .risk-card {{
-        background: {COLOR_BLUE_4}20;
-        padding: 0.8rem;
-        border-radius: 8px;
-        margin-top: 1rem;
-        border: 1px solid {COLOR_BLUE_3};
-        text-align: center;
     }}
     
     hr {{
@@ -409,7 +386,6 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Header with logo in top-left corner
-# Create two columns: one for logo, one for empty space
 col_logo, col_empty = st.columns([1, 5])
 
 with col_logo:
@@ -426,11 +402,11 @@ with col_logo:
 # Title centered below logo
 st.markdown(f'<div class="main-header">{get_text("title")}</div>', unsafe_allow_html=True)
 
-# File paths
-TRAINING_DATA_PATH = r"C:\Users\Beca.Liang\copper_usage\train_data.csv"
-MODEL_CONFIG_PATH = r"C:\Users\Beca.Liang\copper_usage\src\copper_usage\config\default_models.yaml"
-DATA_CONFIG_PATH = r"C:\Users\Beca.Liang\copper_usage\src\copper_usage\config\data_settings.yaml"
-MODEL_SAVE_PATH = "trained_model.pkl"
+# File paths - use relative paths
+TRAINING_DATA_PATH = current_dir / "train_data.csv"
+MODEL_CONFIG_PATH = current_dir / "src" / "copper_usage" / "config" / "default_models.yaml"
+DATA_CONFIG_PATH = current_dir / "src" / "copper_usage" / "config" / "data_settings.yaml"
+MODEL_SAVE_PATH = current_dir / "trained_model.pkl"
 
 # Initialize session state
 if 'model' not in st.session_state:
@@ -446,16 +422,16 @@ if not st.session_state.model_loaded and PACKAGES_AVAILABLE and not st.session_s
     
     try:
         # Check if model already exists
-        if os.path.exists(MODEL_SAVE_PATH):
+        if MODEL_SAVE_PATH.exists():
             with open(MODEL_SAVE_PATH, 'rb') as f:
                 st.session_state.model = pickle.load(f)
                 st.session_state.model_loaded = True
         else:
             # Check if training files exist
             files_exist = all([
-                os.path.exists(TRAINING_DATA_PATH),
-                os.path.exists(MODEL_CONFIG_PATH),
-                os.path.exists(DATA_CONFIG_PATH)
+                TRAINING_DATA_PATH.exists(),
+                MODEL_CONFIG_PATH.exists(),
+                DATA_CONFIG_PATH.exists()
             ])
             
             if files_exist:
@@ -463,7 +439,7 @@ if not st.session_state.model_loaded and PACKAGES_AVAILABLE and not st.session_s
                 model = ModelFactory.build_model_from_config(str(MODEL_CONFIG_PATH))
                 dmgr = TrainingsDataManager.init_from_config(
                     model=model,
-                    file_path=TRAINING_DATA_PATH,
+                    file_path=str(TRAINING_DATA_PATH),
                     cfg_file=str(DATA_CONFIG_PATH),
                 )
                 model.fit(dmgr.df)
@@ -480,7 +456,7 @@ if not st.session_state.model_loaded and PACKAGES_AVAILABLE and not st.session_s
 # Check if model is loaded - show warning only if not loaded and files exist
 if not st.session_state.model_loaded:
     # Only show warning if files exist but model failed to load
-    if os.path.exists(TRAINING_DATA_PATH) and os.path.exists(MODEL_CONFIG_PATH):
+    if TRAINING_DATA_PATH.exists() and MODEL_CONFIG_PATH.exists():
         st.warning(f"""
         ### {get_text('model_not_available')}
         
@@ -511,7 +487,7 @@ with st.form("prediction_form"):
             step=0.1,
             format="%.2f"
         )
-        st.markdown(f'<div class="caption">{get_text("unit_mm")}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="caption">{get_text("unit_micrometer")}</div>', unsafe_allow_html=True)
         
         ratio = st.number_input(
             get_text('aspect_ratio'),
@@ -530,7 +506,7 @@ with st.form("prediction_form"):
         st.markdown(f"**{get_text('quality_requirements')}**")
         
         minimal_thickness = st.number_input(
-            get_text('target_thickness'),
+            get_text('required_thickness'),
             min_value=5.0,
             max_value=100.0,
             value=15.0,
@@ -538,27 +514,6 @@ with st.form("prediction_form"):
             format="%.2f"
         )
         st.markdown(f'<div class="caption">{get_text("unit_micrometer")}</div>', unsafe_allow_html=True)
-        
-        margin = st.slider(
-            get_text('risk_tolerance'),
-            min_value=0.01,
-            max_value=0.20,
-            value=0.05,
-            step=0.01,
-            format="%.2f"
-        )
-        
-        # Simplified risk assessment - only shows percentage
-        margin_percent = margin * 100
-        
-        st.markdown(f"""
-        <div class="risk-card">
-            <div style="font-size: 0.8rem; color: {COLOR_GRAY_1};">{get_text('risk_assessment')}</div>
-            <div style="font-size: 1.2rem; font-weight: 700; color: {COLOR_BLUE_1}; margin-top: 0.2rem;">
-                {margin_percent:.0f}% {get_text('chance_below')}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
         
         # Add spacing before the button
         st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
@@ -571,7 +526,7 @@ with st.form("prediction_form"):
     with col_btn2:
         submitted = st.form_submit_button(get_text('calculate_button'), type="primary", use_container_width=True)
     
-    # Process form submission
+    # Process form submission with fixed margin (5%)
     if submitted:
         try:
             with st.spinner(get_text('calculating')):
@@ -580,7 +535,7 @@ with st.form("prediction_form"):
                     Ratio=ratio,
                     board_thickness=board_thickness,
                     minimal_thickness=minimal_thickness,
-                    margin=margin
+                    margin=FIXED_MARGIN  # Fixed at 5%
                 )
                 
                 result = st.session_state.model.predict(board)
@@ -591,7 +546,7 @@ with st.form("prediction_form"):
                     'board_thickness': board_thickness,
                     'ratio': ratio,
                     'minimal_thickness': minimal_thickness,
-                    'margin': margin
+                    'margin': FIXED_MARGIN
                 }
                 
         except Exception as e:
@@ -607,7 +562,6 @@ if st.session_state.get('calculation_result'):
     board_thickness = data['board_thickness']
     ratio = data['ratio']
     minimal_thickness = data['minimal_thickness']
-    margin = data['margin']
     
     st.markdown("---")
     st.markdown(f"## {get_text('recommended_parameters')}")
@@ -663,7 +617,7 @@ if st.session_state.get('calculation_result'):
     with col1:
         st.markdown(f"""
         <div style="background: {COLOR_WHITE}; border-radius: 10px; padding: 1.2rem; margin: 0.5rem 0; border-left: 4px solid {COLOR_BLUE_2}; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <div style="font-weight: 600; margin-bottom: 0.75rem; font-size: 0.9rem; color: {COLOR_BLUE_1};">📥 {get_text('input_parameters')}</div>
+            <div style="font-weight: 600; margin-bottom: 0.75rem; font-size: 0.9rem; color: {COLOR_BLUE_1};"> {get_text('input_parameters')}</div>
             <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid {COLOR_GRAY_4};">
                 <span style="color: {COLOR_GRAY_1};">{get_text('line_type')}</span>
                 <span style="font-weight: 500;">{get_text('vcp_line') if is_vcp else get_text('non_vcp_line')}</span>
@@ -676,13 +630,9 @@ if st.session_state.get('calculation_result'):
                 <span style="color: {COLOR_GRAY_1};">{get_text('aspect_ratio')}</span>
                 <span style="font-weight: 500;">{ratio:.2f}</span>
             </div>
-            <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid {COLOR_GRAY_4};">
-                <span style="color: {COLOR_GRAY_1};">{get_text('target_thickness')}</span>
-                <span style="font-weight: 500;">{minimal_thickness} μm</span>
-            </div>
             <div style="display: flex; justify-content: space-between; padding: 0.4rem 0;">
-                <span style="color: {COLOR_GRAY_1};">{get_text('risk_tolerance')}</span>
-                <span style="font-weight: 500;">{margin*100:.0f}%</span>
+                <span style="color: {COLOR_GRAY_1};">{get_text('required_thickness')}</span>
+                <span style="font-weight: 500;">{minimal_thickness} μm</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -692,7 +642,7 @@ if st.session_state.get('calculation_result'):
         if is_vcp and hasattr(result, 'spray_frequency') and result.spray_frequency is not None:
             st.markdown(f"""
             <div style="background: {COLOR_WHITE}; border-radius: 10px; padding: 1.2rem; margin: 0.5rem 0; border-left: 4px solid {COLOR_BLUE_2}; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                <div style="font-weight: 600; margin-bottom: 0.75rem; font-size: 0.9rem; color: {COLOR_BLUE_1};">📤 {get_text('output_parameters')}</div>
+                <div style="font-weight: 600; margin-bottom: 0.75rem; font-size: 0.9rem; color: {COLOR_BLUE_1};"> {get_text('output_parameters')}</div>
                 <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid {COLOR_GRAY_4};">
                     <span style="color: {COLOR_GRAY_1};">{get_text('plating_time')}</span>
                     <span style="font-weight: 500; color: {COLOR_BLUE_1};">{result.plating_time:.1f} {get_text('minutes')}</span>
@@ -710,7 +660,7 @@ if st.session_state.get('calculation_result'):
         else:
             st.markdown(f"""
             <div style="background: {COLOR_WHITE}; border-radius: 10px; padding: 1.2rem; margin: 0.5rem 0; border-left: 4px solid {COLOR_BLUE_2}; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                <div style="font-weight: 600; margin-bottom: 0.75rem; font-size: 0.9rem; color: {COLOR_BLUE_1};">📤 {get_text('output_parameters')}</div>
+                <div style="font-weight: 600; margin-bottom: 0.75rem; font-size: 0.9rem; color: {COLOR_BLUE_1};"> {get_text('output_parameters')}</div>
                 <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid {COLOR_GRAY_4};">
                     <span style="color: {COLOR_GRAY_1};">{get_text('plating_time')}</span>
                     <span style="font-weight: 500; color: {COLOR_BLUE_1};">{result.plating_time:.1f} {get_text('minutes')}</span>
@@ -729,7 +679,7 @@ if st.session_state.get('calculation_result'):
         "Ratio": ratio,
         "board_thickness_mm": board_thickness,
         "minimal_thickness_um": minimal_thickness,
-        "margin": margin,
+        "margin": FIXED_MARGIN,
         "plating_time_min": result.plating_time,
         "current_density_A_cm2": result.current_density,
     }
@@ -742,13 +692,6 @@ if st.session_state.get('calculation_result'):
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.markdown("""
-        <style>
-            div.stDownloadButton > button {
-                color: white !important;
-            }
-        </style>
-        """, unsafe_allow_html=True)
         st.download_button(
             label=get_text('download_results'),
             data=csv,
