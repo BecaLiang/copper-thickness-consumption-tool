@@ -511,7 +511,7 @@ with st.form("prediction_form"):
             step=0.1,
             format="%.2f"
         )
-        st.markdown(f'<div class="caption">{get_text("unit_mm")}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="caption">{get_text("unit_micrometer")}</div>', unsafe_allow_html=True)
         
         ratio = st.number_input(
             get_text('aspect_ratio'),
