@@ -4,3 +4,7 @@ pytest
 numpy
 pandas
 scipy
+streamlit
+pandas
+plotly
+Pillow
