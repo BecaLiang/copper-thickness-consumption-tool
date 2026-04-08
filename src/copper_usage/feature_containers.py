@@ -1,4 +1,4 @@
-from pydantic.dataclasses import dataclass
+from pydantic import dataclass
 from pydantic import PositiveFloat, confloat
 
 
