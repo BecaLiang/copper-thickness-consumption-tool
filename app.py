@@ -26,7 +26,7 @@ PACKAGES_AVAILABLE = True
 logo_path = current_dir / "Logo Blue Slogan.jpg"
 logo_exists = logo_path.exists()
 
-# Fixed safety margin - 5% (operators don't need to set this)
+# Fixed safety margin - 5%
 FIXED_MARGIN = 0.05
 
 # Company colors with depth variations
