@@ -362,7 +362,7 @@ st.markdown(f"""
     .caption {{
         font-size: 0.7rem;
         color: {COLOR_GRAY_2};
-        margin-top: 0.2rem;
+        margin-top: -0.2rem;
     }}
     
     .info-table {{
@@ -470,6 +470,7 @@ st.markdown(f"### {get_text('enter_specifications')}")
 with st.form("prediction_form"):
     col1, col2 = st.columns(2, gap="large")
     
+
     with col1:
         st.markdown(f"**{get_text('board_specifications')}**")
         
@@ -480,14 +481,13 @@ with st.form("prediction_form"):
         )
         
         board_thickness = st.number_input(
-            get_text('board_thickness'),
+            f"{get_text('board_thickness')} (μm)",
             min_value=0.1,
             max_value=10.0,
             value=1.1,
             step=0.1,
             format="%.2f"
         )
-        st.markdown(f'<div class="caption">{get_text("unit_micrometer")}</div>', unsafe_allow_html=True)
         
         ratio = st.number_input(
             get_text('aspect_ratio'),
@@ -498,25 +498,18 @@ with st.form("prediction_form"):
             format="%.2f"
         )
         st.markdown(f'<div class="caption">{get_text("aspect_ratio_formula")}</div>', unsafe_allow_html=True)
-        
-        # Add spacing at bottom of left column
-        st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-    
+
     with col2:
         st.markdown(f"**{get_text('quality_requirements')}**")
         
         minimal_thickness = st.number_input(
-            get_text('required_thickness'),
+            f"{get_text('required_thickness')} (μm)",
             min_value=5.0,
             max_value=100.0,
             value=15.0,
             step=0.5,
             format="%.2f"
         )
-        st.markdown(f'<div class="caption">{get_text("unit_micrometer")}</div>', unsafe_allow_html=True)
-        
-        # Add spacing before the button
-        st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
     
     # Add spacing before button row
     st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
@@ -530,6 +523,7 @@ with st.form("prediction_form"):
     if submitted:
         try:
             with st.spinner(get_text('calculating')):
+                # These variables are defined here
                 board = BoardFeatureContainer(
                     is_vcp=is_vcp,
                     Ratio=ratio,
@@ -553,6 +547,7 @@ with st.form("prediction_form"):
             st.error(f"{get_text('calculation_error')}: {e}")
             with st.expander(get_text('technical_details')):
                 st.code(traceback.format_exc())
+
 
 # Display results
 if st.session_state.get('calculation_result'):
