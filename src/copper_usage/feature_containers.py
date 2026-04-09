@@ -1,5 +1,9 @@
 from pydantic.dataclasses import dataclass
-from pydantic import PositiveFloat, confloat
+from pydantic import (
+    PositiveFloat, 
+    confloat, 
+    NonNegativeFloat,
+)
 
 
 @dataclass
