@@ -13,13 +13,13 @@ vcp:
         plating_time: 'Pattern Plating_Copper Plating Time (min)'
         constraints:
             current_density:
-                lower: 17
-                upper: 21
+                lower: 15
+                upper: 40
             spray_frequency:
-                lower: 0
-                upper: 30
-            plating_time:
                 lower: 30
+                upper: 70
+            plating_time:
+                lower: 15
         fit_parameters:
             - plating_time
             - current_density
@@ -35,11 +35,11 @@ non_vcp:
         current_density: 'Pattern Plating_Copper Current Density'
         plating_time: 'Pattern Plating_Copper Plating Time (min)'
         constraints:
-            current_pattern:
-                lower: 17
-                upper: 21
+            current_density:
+                lower: 5
+                upper: 36
             plating_time:
-                lower: 30
+                lower: 15
         fit_parameters:
             - plating_time
             - current_density
