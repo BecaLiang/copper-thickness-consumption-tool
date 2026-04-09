@@ -142,7 +142,7 @@ class DataColumns:
         )
         obj = cls(
             fvc,
-                cfg.get('constraints', {})
+            cfg.get('constraints', {})
         )
         obj.set_fit_parameters(cfg.get('fit_parameters', []))
 
@@ -204,4 +204,5 @@ class DataColumns:
         bounds = []
         for c in columns or self.fitted_parameters:
             bounds.append(self.constraints.get(c, Constraint()))
+
         return [b.get() for b in bounds]
