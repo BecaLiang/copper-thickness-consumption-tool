@@ -1,9 +1,10 @@
 import numpy as np
 
-from copper_usage.feature_containers import MachineFeatureContainer
-
+from pathlib import Path
 
 from pydantic.dataclasses import dataclass
+
+from copper_usage.feature_containers import MachineFeatureContainer
 
 
 @dataclass
@@ -31,7 +32,11 @@ class FitValueCollection:
 
     @classmethod
     def spawn_from_defaults(cls):
-        return cls([FitValue(fp) for fp in cls.default_fit_parameters()])
+        return cls(
+            [
+                FitValue(fp) for fp in cls.default_fit_parameters()
+            ]
+        )
 
     @classmethod
     def spawn_from_dict(cls, cfg):
@@ -57,6 +62,9 @@ class FitValueCollection:
             return self._value_column_map[item.name] == item.column
         else:
             raise TypeError
+        
+    def __len__(self):
+        return len(self.fit_values)
 
     def get_column(self, name: str, raise_if_missing: bool=False):
         if raise_if_missing:
@@ -110,14 +118,30 @@ class Constraint:
 @dataclass
 class DataColumns:
 
-    fit_values: FitValueCollection
+    # Notiz aus der Zukunft, ist das wirklich noetig, 
+    # koennte man sich nicht eine von beiden Klassen sparen,
+    # indem man beide zusammenfuehrt?
+
+    fit_values: FitValueCollection | None=None
     constraints: dict[str, Constraint]=None
     _fitted_parameters: list[str] | None=None
-    _fit_values: FitValueCollection | None=None
+    # _fit_values: FitValueCollection | None=None
 
     def __post_init__(self):
-        if self._fit_values is None:
-            self._fit_values = FitValueCollection.spawn_from_defaults()
+        if self.fit_values is None:
+            self.fit_values = FitValueCollection.spawn_from_defaults()
+
+    @classmethod
+    def init_from_file(
+            cls,
+            cfg_file_name: str='default_models.yaml',
+            cfg_key: str='vcp',
+    ):
+        cfg_file = Path(cfg_file_name)
+        if not cfg_file.is_file():
+            the_path = Path(__file__).parent / 'src' / 'copper_usage' / 'config' /  cfg_file
+            print(the_path)
+        raise RuntimeError
 
     @classmethod
     def init_from_config(
@@ -161,6 +185,9 @@ class DataColumns:
             p: v for p, v in zip(self.fitted_parameters, fitted_values)
         }
         return MachineFeatureContainer(**bfc_kwargs)
+    
+    def __getitem__(self, key):
+        return self.fit_values.get_column(key)
 
     @property
     def all_columns(self) -> list[str]:

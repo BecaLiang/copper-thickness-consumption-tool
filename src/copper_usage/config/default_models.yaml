@@ -19,7 +19,8 @@ vcp:
                 lower: 30
                 upper: 70
             plating_time:
-                lower: 15
+                lower: 35.95
+                upper: 36.05
         fit_parameters:
             - plating_time
             - current_density
@@ -27,7 +28,7 @@ vcp:
             - spray_frequency
     calculation_model: board_linear_calculation
     fit_model: 'linear_board_and_spray'
-    start_values: [0.1, 1, 1, 1]
+    start_values: [36, 1, 1, 1]
 non_vcp:
     data_columns:
         board_thickness: 'Board Thickness (mm)'
@@ -39,13 +40,14 @@ non_vcp:
                 lower: 5
                 upper: 36
             plating_time:
-                lower: 15
+                lower: 60
+                upper: 90
         fit_parameters:
             - plating_time
             - current_density
             - board_thickness
     calculation_model: board_linear_calculation
     fit_model: 'linear_board'
-    start_values: [0.1, 1, 1]
+    start_values: [60, 1, 1]
 errormodel: gaussian
 nan_value: nan

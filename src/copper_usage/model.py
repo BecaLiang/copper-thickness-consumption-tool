@@ -23,14 +23,41 @@ class Model:
         self.default_margin = default_margin
 
     def _assert_unambiguous_calculation(self):
-         # assert self.
          pass
 
-    def _select_calculator_idx(self, *args, **kwargs):
+    def get_data_column(
+                self,
+                is_vcp: bool,
+                Ratio: float=None,
+                **kwargs,
+        ):
+            if Ratio is None:
+                tcs = [tc for tc in self.thickness_calculations if tc.slicer.is_vcp == is_vcp]
+                if len(tcs) == 0:
+                    raise IndexError
+                else:
+                    return tcs[0].data_columns
+            else:
+                return self.thickness_calculations[
+                    self._select_calculator_idx(
+                        is_vcp=is_vcp,
+                        Ratio=Ratio,
+                    )
+                ].data_columns
+
+    def _select_calculator_idx(
+              self,
+              raise_if_missing: bool=True,
+              *args,
+              **kwargs,
+        ):
         for idx, calc in enumerate(self.thickness_calculations):
              if calc.is_in_charge(*args, **kwargs):
                   return idx
-        return None
+        if raise_if_missing:
+             raise KeyError
+        else:
+            return None
 
     def fit(self, df: pd.DataFrame, verbose: bool=False):
         for tc in self.thickness_calculations:
@@ -55,7 +82,6 @@ class Model:
             **kwargs,
         ) -> ParameterFitResult:
             cid = self._select_calculator_idx(**kwargs)
-            assert cid is not None
             calc = self.thickness_calculations[cid]
             fixes = calc.extract_fixed_values(fix_columns, **kwargs)
             fitted_parameters = self.error_model(

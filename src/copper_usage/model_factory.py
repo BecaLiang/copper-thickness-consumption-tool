@@ -69,7 +69,7 @@ class ModelFactory:
         )
     
     @staticmethod
-    def build_model_from_config(cfg_file):
+    def build_model_from_config(cfg_file: str='default_models.yaml'):
         if Path(cfg_file).is_file():
             with open(Path(cfg_file)) as yin:
                 return ModelFactory.init_separate_vcp(yaml.safe_load(yin))
