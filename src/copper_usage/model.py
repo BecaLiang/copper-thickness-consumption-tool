@@ -1,4 +1,5 @@
 from copper_usage.thickness_calculation import ThicknessCalculation
+from copper_usage.data_columns import FitValueCollection
 
 from copper_usage.inverter import (
     ErrorModel,
@@ -45,6 +46,36 @@ class Model:
                     )
                 ].data_columns
 
+    def build_combined_column_dict(self) -> dict[str, str]:
+        fvc = FitValueCollection([])
+        ratio_column = self.thickness_calculations[0].slicer.ratio_column
+        vcp_column = self.thickness_calculations[0].slicer.vcp_column
+        for tc in self.thickness_calculations:
+            fvc += tc.data_columns.fit_values
+            assert ratio_column == tc.slicer.ratio_column
+            assert vcp_column == tc.slicer.vcp_column
+        return fvc._value_column_map.copy() | {
+            'ratio_column': ratio_column,
+            'vcp_column': vcp_column,
+        }
+    
+    def extract_board_feature_list(
+            self, 
+            df: pd.DataFrame, 
+            margin: float | str
+        ) -> list[BoardFeatureContainer]:
+        cols = self.build_combined_column_dict()
+        return [
+            BoardFeatureContainer(
+                margin=margin,
+                required_thickness=row[cols['requirement_column']],
+                is_vcp=row[cols['vcp_column']],
+                Ratio=row[cols['ratio_column']],
+                board_thickness=row[cols['board_thickness']],
+            ) for _, row in df.iterrows()
+        ]
+
+
     def _select_calculator_idx(
               self,
               raise_if_missing: bool=True,
@@ -65,34 +96,46 @@ class Model:
 
     def predict(self, board: BoardFeatureContainer):
         return self.predict_single_board(
-            minimal_thickness=board.minimal_thickness,
+            required_thickness=board.required_thickness,
             margin=board.margin,
             is_vcp=board.is_vcp,
             Ratio=board.Ratio,
             board_thickness=board.board_thickness,
         )
+    
+    def bulk_predict(self, df: pd.DataFrame):
+        pass
 
     def predict_single_board(
             self, 
-            minimal_thickness: float,
+            required_thickness: float,
             margin: float=None,
             p0: list[float]=None,
             sigma: float=None,
-            fix_columns: list[str]=['board_thickness'],
             **kwargs,
         ) -> ParameterFitResult:
             cid = self._select_calculator_idx(**kwargs)
-            calc = self.thickness_calculations[cid]
-            fixes = calc.extract_fixed_values(fix_columns, **kwargs)
+            relevant_calcer = self.thickness_calculations[cid]
+            fixes = relevant_calcer.extract_fixed_values(
+                 relevant_calcer.board_specifics + relevant_calcer.data_columns.fixed_columns,
+                 **(kwargs | relevant_calcer.data_columns.fixed_values),
+            )
+
+            actual_start_values = ThicknessCalculation.apply_fixes(
+                relevant_calcer.start_values if p0 is None else p0, 
+                fixes,
+            )
+
             fitted_parameters = self.error_model(
-                calc, 
+                relevant_calcer, 
                 margin=margin or self.default_margin,
-                min_required=minimal_thickness,
-                p0=p0,
+                min_required=required_thickness,
+                p0=actual_start_values,
                 empirical_sigma=sigma,
                 fixes=fixes,
             )
-            result = calc.data_columns.spawn_board_features(
+
+            result = relevant_calcer.data_columns.spawn_board_features(
                 fitted_values=fitted_parameters.params,
                 fixes=fixes,
             )

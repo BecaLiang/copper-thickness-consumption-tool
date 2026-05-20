@@ -9,7 +9,7 @@ from pydantic import (
 @dataclass
 class BoardFeatureContainer:
     margin: confloat(gt=0, lt=1)
-    minimal_thickness: PositiveFloat
+    required_thickness: PositiveFloat
     is_vcp: bool
     Ratio: PositiveFloat
     board_thickness: PositiveFloat

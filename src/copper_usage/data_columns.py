@@ -1,4 +1,10 @@
+from __future__ import annotations
+
+
 import numpy as np
+
+import yaml
+import copy
 
 from pathlib import Path
 
@@ -53,6 +59,35 @@ class FitValueCollection:
         if self._fit_parameters is not None:
             assert all(fp in self._value_column_map for fp in self._fit_parameters)
 
+    def __add__(self, rhs: FitValueCollection):
+
+        common_keys = list(
+            set(self._value_column_map.keys())
+            & set(rhs._value_column_map.keys())
+        )
+        if any(
+            [
+                self._value_column_map[k] != rhs._value_column_map[k]
+                for k in common_keys
+            ]
+        ):
+            raise ValueError('Inherent value')
+        missing_keys = list(
+            set(rhs._value_column_map.keys())
+            - set(self._value_column_map.keys())
+        )
+
+        new_values = copy.deepcopy(self.fit_values)
+        
+        for k in missing_keys:
+            new_values.append(
+                FitValue(
+                    name=k,
+                    column=rhs[k],
+                )
+            )
+        return FitValueCollection(new_values)
+
     def __contains__(self, item: str | FitValue):
         if isinstance(item, str):
             return item in [fv.name for fv in self.fit_values]
@@ -60,6 +95,14 @@ class FitValueCollection:
             if item.name not in [fv.name for fv in self.fit_values]:
                 return False
             return self._value_column_map[item.name] == item.column
+        else:
+            raise TypeError
+
+    def __getitem__(self, item: str | FitValue):
+        if isinstance(item, str):
+            return self._value_column_map[item]
+        elif isinstance(item, FitValue):
+            return self._value_column_map[item.name]
         else:
             raise TypeError
         
@@ -124,6 +167,7 @@ class DataColumns:
 
     fit_values: FitValueCollection | None=None
     constraints: dict[str, Constraint]=None
+    fixed_values: dict[str, float]=None
     _fitted_parameters: list[str] | None=None
     # _fit_values: FitValueCollection | None=None
 
@@ -139,9 +183,10 @@ class DataColumns:
     ):
         cfg_file = Path(cfg_file_name)
         if not cfg_file.is_file():
-            the_path = Path(__file__).parent / 'src' / 'copper_usage' / 'config' /  cfg_file
-            print(the_path)
-        raise RuntimeError
+            cfg_file = Path(__file__).parent / 'src' / 'copper_usage' / 'config' /  cfg_file
+        with open(cfg_file) as yin:
+            cfg = yaml.safe_load(yin)
+        return cls.init_from_config(cfg[cfg_key]['data_columns'])
 
     @classmethod
     def init_from_config(
@@ -166,7 +211,8 @@ class DataColumns:
         )
         obj = cls(
             fvc,
-            cfg.get('constraints', {})
+            cfg.get('constraints', {}),
+            fixed_values=cfg.get('fixed_values', {}),
         )
         obj.set_fit_parameters(cfg.get('fit_parameters', []))
 
@@ -217,6 +263,10 @@ class DataColumns:
     @property
     def target_column(self) -> str:
         return self.fit_values.get_column('target', raise_if_missing=True)
+    
+    @property
+    def fixed_columns(self) -> list[str]:
+        return list(self.fixed_values.keys())
 
     def set_fit_parameters(self, fit_value_names: list[str]):
         self._fitted_parameters = [

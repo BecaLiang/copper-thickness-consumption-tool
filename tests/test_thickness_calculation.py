@@ -33,7 +33,8 @@ def tc_default():
                 FitValue('current_density', column='current_pattern'),
                 FitValue('target', column='minimal_thickness'),
             ]
-        )
+        ),
+        fixed_values={},
     )
 
     return PlainLinearThicknessCalculation(
@@ -61,7 +62,7 @@ def tc_thick():
                 FitValue('target', column='minimal_thickness'),
                 FitValue('thickness', column='board_thickness'),
             ]
-        )
+        ),
     )
     datacs.set_fit_parameters(['plating_time', 'current_density', 'thickness'])
 
@@ -70,6 +71,7 @@ def tc_thick():
         data_slicer=slicer,
         calc=PlainLinearModel(),
         start_values=[],
+        board_specifics=['thickness'],
     )
 
 

@@ -17,7 +17,7 @@ from copper_usage.thickness_calculation import ThicknessCalculation
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class ParameterFitResult:
-    
+
     params: np.ndarray
     inv_hessian: np.ndarray
     constrains: np.ndarray | None=None
@@ -48,6 +48,13 @@ class ParameterFitResult:
                 V,
             )
         )
+    
+    def did_it_terminate(self) -> bool:
+        if np.all(self.inv_hessian == np.diag(self.dimension)):
+            return False
+        else:
+            return True
+        # np.linalg.diagonal(len(self.params)) == self.inv_hessian
 
 
 class ErrorModel(ABC):
@@ -75,12 +82,17 @@ class Score(ABC):
 class MainScore(Score):
 
     def __call__(self, predict, xs, y, minreq, sigma_v) -> float:
-        N = norm.cdf(minreq, predict(xs), sigma_v)
+        N = norm.cdf(
+            x=minreq, 
+            loc=predict(xs), 
+            scale=sigma_v,
+        )
+        print(xs[2], predict(xs), minreq, sigma_v, y, N)
         return (N - y) ** 2
 
 
 class GaussianErrorModel(ErrorModel):
-    
+
     def __init__(self, minimizer_kwargs=None):
         self.minimizer_kwargs = minimizer_kwargs or {}
 
@@ -96,13 +108,12 @@ class GaussianErrorModel(ErrorModel):
         score = MainScore()
         minim_res = minimize(
             partial(
-                # self.score, 
                 score,
                 calculator.build_predict_from_list(
                     fixes=fixes or {}
                 ),
             ), 
-            x0=p0 or calculator._X0,
+            x0=np.ones_like(calculator._X0) if p0 is None else p0,
             args=(margin, min_required, empirical_sigma or calculator._y_width),
             bounds=calculator.data_columns.get_boundaries(),
         )
@@ -113,7 +124,7 @@ class GaussianErrorModel(ErrorModel):
             inv_hessian = minim_res.hess_inv.todense()
         else:
             inv_hessian = minim_res.hess_inv
-
+        print('MINIMUM_RES', minim_res.x)
         return ParameterFitResult(
             params=minim_res.x,
             inv_hessian=inv_hessian,

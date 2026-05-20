@@ -1,3 +1,4 @@
+import copy
 import pytest
 
 import numpy as np
@@ -137,3 +138,47 @@ def test_datacolumns_init():
     )
     assert dc2.fit_columns == ['board thickness mean', 'plating time']
     assert dc2.relevant_columns == ['board thickness mean', 'plating time', 'big profit']
+
+
+def test_add_overload():
+    fvc1 = FitValueCollection.spawn_from_dict(
+        {
+            'thickness': 'Board Thickness in cm',
+            'current': 'Current in Apparatus',
+            'process_time': 'Duration it takes in hours',
+        }
+    )
+    fvc_ = copy.copy(fvc1)
+    fvc_ += FitValueCollection.spawn_from_dict(
+        {
+            'spraying': 'Radio-Poti in GHz',
+        }
+    )
+    assert sorted(
+        list(fvc_._value_column_map.keys())
+    ) == [
+        'current', 'process_time', 'spraying', 'thickness',
+    ]
+    assert fvc_['spraying'] == 'Radio-Poti in GHz'
+    for fv in fvc1.fit_values:
+        assert fvc_[fv.name] == fv.column
+
+    fvc_ = copy.copy(fvc1)
+    with pytest.raises(ValueError):
+        fvc_ += FitValueCollection.spawn_from_dict(
+            {
+                'thickness': 'Board Smallness in mum',
+            }
+        )
+
+    fvc_ = copy.copy(fvc1)
+    fvc_ += FitValueCollection.spawn_from_dict(
+        {
+            'thickness': 'Board Thickness in cm',
+        }
+    )
+    assert sorted(
+        list(fvc_._value_column_map.keys())
+    ) == [
+        'current', 'process_time', 'thickness',
+    ]
