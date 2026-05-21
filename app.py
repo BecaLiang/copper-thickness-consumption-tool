@@ -59,7 +59,7 @@ TEXTS = {
     },
     'company': {
         'English': 'JST · STARTEAM GLOBAL',
-        '中文': 'JST · 先特集团'
+        '中文': 'JST · STARTEAM GLOBAL'
     },
     'enter_specifications': {
         'English': 'Enter Board Specifications',
