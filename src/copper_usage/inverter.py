@@ -75,14 +75,19 @@ class GaussianErrorModel(ErrorModel):
             x0=np.ones_like(calculator._X0) if p0 is None else p0,
             args=(margin, min_required, empirical_sigma or calculator._y_width),
             bounds=calculator.data_columns.get_boundaries(),
-        ) 
+            popsize=40,
+            seed=42,
+        )
+        print({k: x for k, x in zip(calculator.data_columns.fitted_parameters, minim_diff.x)})
+        print(fixes)
+        # print('\n', calculator.extract_fixed_values(['plating_time']), '\n\n\n')
         minim_res = minimize(
             score,
             x0=ThicknessCalculation.apply_fixes(minim_diff.x, fixes),
             args=(margin, min_required, empirical_sigma or calculator._y_width),
             bounds=calculator.data_columns.get_boundaries(),
         )
-
+        print(minim_res.x)
         if isinstance(minim_res.hess_inv, LbfgsInvHessProduct):
             inv_hessian = minim_res.hess_inv.todense()
         else:

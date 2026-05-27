@@ -193,7 +193,7 @@ class DataColumns:
             cfg.get('common_data_columns', {}),
             cfg[cfg_key]['data_columns'],
         )
-        print(ind_cfg)
+
         return cls.init_from_config(ind_cfg)
 
     @classmethod

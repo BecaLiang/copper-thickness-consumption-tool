@@ -1,5 +1,7 @@
 import numpy as np
 
+from copper_usage.utils import round_to_point_five
+
 from pydantic.dataclasses import dataclass
 from pydantic import (
     PositiveFloat, 
@@ -8,6 +10,7 @@ from pydantic import (
 from pydantic import ConfigDict
 
 from functools import cached_property
+
 
 @dataclass
 class BoardFeatureContainer:
@@ -23,22 +26,31 @@ class MachineFeatureContainer:
 
     plating_time: PositiveFloat
     current_density: PositiveFloat
+    target_thickness: PositiveFloat
     spray_frequency: PositiveFloat | None = None
-    target_thickness: PositiveFloat | None = None
 
     _meta: dict | None = None
 
     def __str__(self) -> str:
-        ptstr = f"plating-time: {self.plating_time} min"
-        cdstr = f"current-density: {self.current_density} A/cm^2"
+        ptstr = f"plating-time: {self.plating_time:.3f} min"
+        cdstr = f"current-density: {self.current_density:.3f} A/cm^2"
+        target_str = f"Expected Thickness: {self.target_thickness:.3f} mum"
         if self.spray_frequency is None:
-            return ptstr + '\n' + cdstr
+            return ptstr + '\n' + cdstr + '\n' + target_str
         else:
             sfstr = f"spray-frequency: {self.spray_frequency} Hz"
-            return ptstr + '\n' + cdstr + '\n' + sfstr
+            return ptstr + '\n' + cdstr + '\n' + sfstr + '\n' + target_str
         
     def add_meta(self, key, info):
         self._meta[key] = info
+
+    @property
+    def current_density_range(self) -> tuple[float, float]:
+        rmean = round_to_point_five(self.current_density)
+        return (
+            round_to_point_five(rmean-0.5), 
+            round_to_point_five(rmean+0.5),
+        )
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))

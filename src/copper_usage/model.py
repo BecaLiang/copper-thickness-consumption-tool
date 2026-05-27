@@ -115,13 +115,13 @@ class Model:
             return_calc: bool=True,
             **kwargs,
         ) -> ParameterFitResult:
+
             cid = self._select_calculator_idx(**kwargs)
             relevant_calcer = self.thickness_calculations[cid]
             fixes = relevant_calcer.extract_fixed_values(
                  relevant_calcer.board_specifics + relevant_calcer.data_columns.fixed_columns,
                  **(kwargs | relevant_calcer.data_columns.fixed_values),
             )
-
             actual_start_values = ThicknessCalculation.apply_fixes(
                 relevant_calcer.start_values if p0 is None else p0, 
                 fixes,

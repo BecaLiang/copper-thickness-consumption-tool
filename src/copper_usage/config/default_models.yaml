@@ -34,7 +34,7 @@ non_vcp:
                 lower: 10
                 upper: 36
             plating_time:
-                lower: 20
+                lower: 60
                 upper: 90
         fit_parameters:
             - plating_time
@@ -42,7 +42,7 @@ non_vcp:
             - board_thickness
     calculation_model: board_linear_calculation
     fit_model: 'linear_board'
-    start_values: [70, 12, 1]
+    start_values: [61, 12, 1]
 common_data_columns:
     board_thickness: 'Board Thickness (mm)'
     target: minimal_thickness
