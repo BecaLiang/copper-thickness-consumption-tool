@@ -77,10 +77,10 @@ class Model:
 
 
     def _select_calculator_idx(
-              self,
-              raise_if_missing: bool=True,
-              *args,
-              **kwargs,
+                self,
+                raise_if_missing: bool=True,
+                *args,
+                **kwargs,
         ):
         for idx, calc in enumerate(self.thickness_calculations):
              if calc.is_in_charge(*args, **kwargs):
@@ -112,6 +112,7 @@ class Model:
             margin: float=None,
             p0: list[float]=None,
             sigma: float=None,
+            return_calc: bool=True,
             **kwargs,
         ) -> ParameterFitResult:
             cid = self._select_calculator_idx(**kwargs)
@@ -136,7 +137,7 @@ class Model:
             )
 
             result = relevant_calcer.data_columns.spawn_board_features(
-                fitted_values=fitted_parameters.params,
+                fit_result=fitted_parameters,
                 fixes=fixes,
             )
             return result

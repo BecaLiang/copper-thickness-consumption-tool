@@ -2,59 +2,16 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from scipy.optimize import minimize, Bounds
+from scipy.optimize import minimize, differential_evolution
 from scipy.stats import norm
 from scipy.optimize._lbfgsb_py import LbfgsInvHessProduct
 
-
-from functools import partial, cached_property
+from functools import partial
 
 from pydantic.dataclasses import dataclass
-from pydantic import ConfigDict
 
 from copper_usage.thickness_calculation import ThicknessCalculation
-
-
-@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
-class ParameterFitResult:
-
-    params: np.ndarray
-    inv_hessian: np.ndarray
-    constrains: np.ndarray | None=None
-
-    def __post_init__(self):
-        assert len(self.params) == self.inv_hessian.shape[0]
-        assert len(self.params) == self.inv_hessian.shape[1]
-        self.dimension = len(self.params)
-
-    @cached_property
-    def hessian(self):
-        return np.linalg.inv(self.inv_hessian)
-    
-    def is_hessian_regular(self) -> bool:
-        if np.all(self.inv_hessian == np.diag(self.dimension)):
-            return False
-        return int(np.linalg.matrix_rank(self.inv_hessian)) == self.dimension
-
-    def calculate_distance(self, point: np.ndarray) -> float:
-        # use with caution; the formula is a (valid!) approximation around the minimum
-        if isinstance(point, (list, tuple)):
-            point = np.array(point)
-        assert point.shape == self.params.shape
-        V = point - self.params
-        return np.sqrt(
-            np.dot(
-                np.dot(V.T, self.hessian), 
-                V,
-            )
-        )
-    
-    def did_it_terminate(self) -> bool:
-        if np.all(self.inv_hessian == np.diag(self.dimension)):
-            return False
-        else:
-            return True
-        # np.linalg.diagonal(len(self.params)) == self.inv_hessian
+from copper_usage.feature_containers import ParameterFitResult
 
 
 class ErrorModel(ABC):
@@ -87,7 +44,7 @@ class MainScore(Score):
             loc=predict(xs), 
             scale=sigma_v,
         )
-        print(xs[2], predict(xs), minreq, sigma_v, y, N)
+        # print('AHA; thick', xs[2], 'res:', predict(xs), 'minreq:', minreq, sigma_v, 'y:', y, 'N:', N)
         return (N - y) ** 2
 
 
@@ -105,27 +62,34 @@ class GaussianErrorModel(ErrorModel):
             empirical_sigma: float=None,
             fixes: dict=None,
     ) -> ParameterFitResult:
-        score = MainScore()
-        minim_res = minimize(
-            partial(
-                score,
-                calculator.build_predict_from_list(
-                    fixes=fixes or {}
-                ),
-            ), 
+        
+        score = partial(
+            MainScore(),
+            calculator.build_predict_from_list(
+                fixes=fixes or {}
+            ),
+        )
+
+        minim_diff = differential_evolution(
+            score,
             x0=np.ones_like(calculator._X0) if p0 is None else p0,
             args=(margin, min_required, empirical_sigma or calculator._y_width),
             bounds=calculator.data_columns.get_boundaries(),
+        ) 
+        minim_res = minimize(
+            score,
+            x0=ThicknessCalculation.apply_fixes(minim_diff.x, fixes),
+            args=(margin, min_required, empirical_sigma or calculator._y_width),
+            bounds=calculator.data_columns.get_boundaries(),
         )
-        # Attention: fit might fail without throwing an exception!
-        # Adapting initial values might be necessary in that case
-        # TODO: deal with the issue described above
+
         if isinstance(minim_res.hess_inv, LbfgsInvHessProduct):
             inv_hessian = minim_res.hess_inv.todense()
         else:
             inv_hessian = minim_res.hess_inv
-        print('MINIMUM_RES', minim_res.x)
+    
         return ParameterFitResult(
+            fitted_thickness=calculator.build_predict_from_list(fixes=fixes or {})(minim_res.x),
             params=minim_res.x,
             inv_hessian=inv_hessian,
         )

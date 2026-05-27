@@ -2,6 +2,7 @@ import yaml
 
 from pathlib import Path
 
+from copper_usage.utils import deep_merge_two_dicts
 from copper_usage.data_columns import DataColumns
 from copper_usage.thickness_calculation import (
     MATHMODELS,
@@ -21,7 +22,6 @@ class ModelFactory:
         slicer: VCPLineRatioSlicer,
         cfg: dict,
     ):
-        
         columns = DataColumns.init_from_config(
             cfg.get('data_columns', None),
         )
@@ -52,8 +52,15 @@ class ModelFactory:
         )
 
         vcp_cfg = config['vcp']
-        # common = config['common']
+        vcp_cfg['data_columns'] = deep_merge_two_dicts(
+            config.get('common_data_columns', {}),
+            vcp_cfg['data_columns'],
+        )
         non_vcp_cfg = config['non_vcp']
+        non_vcp_cfg['data_columns'] = deep_merge_two_dicts(
+            config.get('common_data_columns', {}),
+            non_vcp_cfg['data_columns'],
+        )
 
         calculations = [
             ModelFactory.build_single_calculation_slice(
