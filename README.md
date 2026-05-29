@@ -102,7 +102,27 @@ The _predict_ method of the _Model_-class expects an instance of _BoardFeatureCo
 
 In addition, _MachineFeatureContainer_ exhibits as well the property _current\_density\_range_. This property gives a range, 1 A/cm^2 wide, rounded to .5 A/cm^2, around the current density value identified as optimal. It is formatted as tuple of two floats.
 
-### 3.2 CLI-Example
+### 3.2 Config File
+
+#### 3.2.1 Complex Config Structures
+
+  * **slices** slicing give a list of values for the aspect Ratio for _vcp_ and _non\_vcp_ lines, respectively. _underflow_ and _overflow_ parameters tell the algorithm if a slice above (below) the maximal (minimal) value is desired.
+  * **common_data_columns** this maps internal, functional names for variables onto their name in the input data. So if that changes, no code needs to be touched. Variables located here are applied equally to vcp and non_vcp lines. The **common_data_columns** are merged with the entries under **data_columns** keyword of **vcp** and **non_vcp**, respecively; see below.
+  * **vcp** and **non_vcp** Specified configurations for the vcp line and applied only to the vcp line, or analagous the non-vcp line
+  * **data_columns** The configuration of how the data is addressed within the algorithm; used to construct an instance of _DataColumns_ from _data\_columns.py_. A _DataColumns_ instance exists per _SOPSlicer_ instance because of differences between vcp and non-vcp lines and the low amount of slicings makes this decision irrelevant for memory consumption anyway.
+    * **constraints** with _lower_ and _upper_ keys, this forces the respective parameter to end up in between
+    * **fit_model** which **ThicknessCalculation** to choose.
+    * **calculation_model** backend for the fitting, the purely technical implementation.
+    * **fit_parameter** arguments to _F_, the function calculating tmt.
+    * **fixed_values** ensure that this variable will take this value after the fit and the other parameters behave accordingly.  
+  
+
+#### 3.2.2 Simple Datatypes in Config
+
+  * **error_model** key of the _ErrorModel_ instance.
+  * **nan_value** either nan or float to fill missing
+
+### 3.3 CLI-Example
 
 _Example with default configs_:<br>
 ```python .\bin\predict_example.py --margin 0.05 --minimal_thickness 15 --is_vcp True --Ratio 4.5 --board_thickness 1.1 --model_file .\testout.pkl```
