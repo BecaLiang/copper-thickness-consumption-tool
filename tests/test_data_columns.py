@@ -1,3 +1,5 @@
+import pytest
+
 import copy
 import pytest
 
@@ -9,7 +11,41 @@ from copper_usage.data_columns import (
     FitValue, 
     FitValueCollection,
 )
+from copper_usage.feature_containers import ParameterFitResult
 from pydantic import ValidationError
+
+
+@pytest.fixture
+def standard_cfg():
+    return {
+        'thickness': 'board thickness',
+        'duration': 'plating time',
+        'current': 'ampere value',
+        'target': 'minimal pattern thickness',
+        'constraints': {
+            'thickness': {'lower': 0},
+            'duration': {'lower': 0},
+            'current': {'lower': -10, 'upper': 10},
+        },
+        'fit_parameters': ['thickness', 'duration'],
+    }
+
+
+@pytest.fixture
+def dc_cfg():
+    return {
+        'fitted_thickness': 'board thickness',
+        'plating_time': 'plating time',
+        'current_density': 'ampere value',
+        'target_fitness': 'minimal pattern thickness',
+        'target': 'target',
+        'constraints': {
+            'thickness': {'lower': 0},
+            'duration': {'lower': 0},
+            'current': {'lower': -10, 'upper': 10},
+        },
+        'fit_parameters': ['thickness', 'duration'],
+    }
 
 
 def test_constraints():
@@ -106,22 +142,9 @@ def test_data_columns():
         dc2.relevant_columns
 
 
-def test_datacolumns_init():
+def test_datacolumns_init(standard_cfg):
 
-    cfg = {
-        'thickness': 'board thickness',
-        'duration': 'plating time',
-        'current': 'ampere value',
-        'target': 'minimal pattern thickness',
-        'constraints': {
-            'thickness': {'lower': 0},
-            'duration': {'lower': 0},
-            'current': {'lower': -10, 'upper': 10},
-        },
-        'fit_parameters': ['thickness', 'duration'],
-    }
-
-    dc1 = DataColumns.init_from_config(cfg)
+    dc1 = DataColumns.init_from_config(standard_cfg)
     assert dc1.fit_columns == ['board thickness', 'plating time']
     assert dc1.relevant_columns == ['board thickness', 'plating time', 'minimal pattern thickness']
     assert dc1.target_column == 'minimal pattern thickness'
@@ -182,3 +205,23 @@ def test_add_overload():
     ) == [
         'current', 'process_time', 'thickness',
     ]
+
+
+def test_spawn_board_features(dc_cfg):
+
+    pfr1 = ParameterFitResult(
+        fitted_thickness=20,
+        params=np.array([36, 31, 3.1, 40]),
+        inv_hessian=np.diag([1, 1, 1, 1]),
+    )
+
+    dc1 = DataColumns.init_from_config(dc_cfg)
+    dc1._fitted_parameters =  [
+        'plating_time', 'current_density', 'board_thickness', 'spray_frequency'
+    ]
+    mfc = dc1.spawn_board_features(pfr1)
+    
+    assert mfc.plating_time == 36
+    assert mfc.current_density == 31
+    assert mfc.target_thickness == 20
+    assert mfc.spray_frequency == 40

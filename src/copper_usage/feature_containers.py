@@ -34,7 +34,7 @@ class MachineFeatureContainer:
     def __str__(self) -> str:
         ptstr = f"plating-time: {self.plating_time:.3f} min"
         cdstr = f"current-density: {self.current_density:.3f} A/cm^2"
-        target_str = f"Expected Thickness: {self.target_thickness:.3f} mum gugugugu"
+        target_str = f"Expected Thickness: {self.target_thickness:.3f} mum"
         if self.spray_frequency is None:
             return ptstr + '\n' + cdstr + '\n' + target_str
         else:

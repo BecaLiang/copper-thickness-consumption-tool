@@ -199,7 +199,7 @@ class DataColumns:
     @classmethod
     def init_from_config(
             cls,
-            cfg: dict=None,
+            cfg: dict,
             confirm_target: bool=True,
             use_default: bool=False,
             *args,
@@ -243,6 +243,7 @@ class DataColumns:
                 fit_result.params,
             )
         }
+
         return MachineFeatureContainer(
             **bfc_kwargs, 
             target_thickness=fit_result.fitted_thickness,
