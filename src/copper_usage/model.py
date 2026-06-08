@@ -42,7 +42,7 @@ class Model:
                 return self.thickness_calculations[
                     self._select_calculator_idx(
                         is_vcp=is_vcp,
-                        Ratio=Ratio,
+                         Ratio=Ratio,
                     )
                 ].data_columns
 

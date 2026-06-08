@@ -46,7 +46,7 @@ class ModelFactory:
 
     @staticmethod
     def init_separate_vcp(config: dict, *args, **kwargs) -> Model:
-        
+
         slicers = VCPLineRatioSlicer.initialize_slices(
             config['slices'],
         )
@@ -68,8 +68,7 @@ class ModelFactory:
                 cfg=vcp_cfg if slicer.is_vcp else non_vcp_cfg,
             ) for slicer in slicers
         ]
-
-        # TODO: Make configurable
+        print('\nINIT MODEL\n')
         return Model(
             calculations,
             error_model=GaussianErrorModel()

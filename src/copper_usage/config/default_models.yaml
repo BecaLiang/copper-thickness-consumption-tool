@@ -53,5 +53,8 @@ common_data_columns:
         board_thickness:
             lower: 1e-2
             upper: 20
-errormodel: gaussian
+errormodel: 
+    model_type: gaussian
+    reg_model: lambda
+    reg_value: 0.1
 nan_value: nan
