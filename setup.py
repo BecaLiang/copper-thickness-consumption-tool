@@ -7,14 +7,14 @@ required_packages = [
     'pytest',
     'numpy',
     'pandas',
-    'scipy'
+    'scipy',
 ]
 
 
 setup(
     name='copper_usage', 
     author='Johannes Grygier, Beca Liang',
-    version='0.1.0',
+    version='0.1.1',
     package_dir={'': 'src'},
     packages=find_packages(
         where='src',
@@ -23,5 +23,5 @@ setup(
             'copper_usage.*',
         ],
     ),
-    install_requires=required_packages
+    install_requires=required_packages,
 )

@@ -75,7 +75,6 @@ class Model:
             ) for _, row in df.iterrows()
         ]
 
-
     def _select_calculator_idx(
                 self,
                 raise_if_missing: bool=True,

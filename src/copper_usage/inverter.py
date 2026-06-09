@@ -108,35 +108,21 @@ class GaussianErrorModel(ErrorModel):
             ),
         )
 
-        # regularize = lambda 
-        # minim_diff = differential_evolution(
-        #     score,
-        #     x0=np.ones_like(calculator._X0) if p0 is None else p0,
-        #     args=(margin, min_required, empirical_sigma or calculator._y_width),
-        #     bounds=calculator.data_columns.get_boundaries(),
-        #     popsize=40,
-        #     seed=42,
-        # )
-
-        # x0 = ThicknessCalculation.apply_fixes(minim_diff.x, fixes)
         x0 = ThicknessCalculation.apply_fixes(calculator._X0, fixes)
         cons = {
             "type": "eq",
             "fun": score,
-            "args": (margin, min_required, empirical_sigma or calculator._y_width),
+            "args": (
+                margin,
+                min_required,
+                empirical_sigma or calculator._y_width,
+            ),
         }
 
-        predict = calculator.build_predict_from_list(
-                fixes=fixes or {},
-                params=calculator.fitted_params,
-            )
-
         minim_res = minimize(
-            # score,
             lambda x: np.sum((x - calculator._X0) ** 2),
             x0=x0,
             constraints=[cons],
-            # args=(margin, min_required, empirical_sigma or calculator._y_width),
             bounds=calculator.data_columns.get_boundaries(),
         )
 
@@ -152,6 +138,7 @@ class GaussianErrorModel(ErrorModel):
             fitted_thickness=calculator.build_predict_from_list(fixes=fixes or {})(minim_res.x),
             params=minim_res.x,
             inv_hessian=inv_hessian,
+            iterations=minim_res.nit,
         )
     
 

@@ -60,6 +60,7 @@ class ParameterFitResult:
     params: np.ndarray
     inv_hessian: np.ndarray
     constrains: np.ndarray | None=None
+    iterations: int=-1
 
     def __post_init__(self):
         assert len(self.params) == self.inv_hessian.shape[0]

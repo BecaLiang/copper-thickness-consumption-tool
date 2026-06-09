@@ -39,8 +39,8 @@ class ModelFactory:
             data_slicer = slicer,
             calc = math_calc,
             start_values = cfg.get(
-                'start_values', 
-                math_calc.default_start_values
+                'start_values',
+                math_calc.default_start_values,
             ),
         )
 
