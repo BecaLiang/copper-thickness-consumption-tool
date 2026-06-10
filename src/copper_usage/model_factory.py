@@ -33,7 +33,10 @@ class ModelFactory:
         )
 
         return THICKNESS_CALCULATIONS[
-            cfg.get('calculation_model', PlainLinearThicknessCalculation)
+            cfg.get(
+                'calculation_model', 
+                PlainLinearThicknessCalculation,
+            )
         ](
             data_columns = columns,
             data_slicer = slicer,
@@ -68,7 +71,7 @@ class ModelFactory:
                 cfg=vcp_cfg if slicer.is_vcp else non_vcp_cfg,
             ) for slicer in slicers
         ]
-        print('\nINIT MODEL\n')
+
         return Model(
             calculations,
             error_model=GaussianErrorModel()

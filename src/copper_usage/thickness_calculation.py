@@ -227,7 +227,6 @@ class ThicknessCalculation(ABC):
         return self.predict(dfproc)
     
     def build_predict_from_list(self, **kwargs):
-        print('CALL TEST')
         return self.predict_from_list
     
     def extract_fixed_values(self, **kwargs) -> dict[int, Any]:

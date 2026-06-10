@@ -87,6 +87,8 @@ class RegularizedScore(Score):
 
 class GaussianErrorModel(ErrorModel):
 
+    # This has nothing to do with assumptions about the posterior distribution of the thickness
+
     def __init__(self, minimizer_kwargs=None):
         self.minimizer_kwargs = minimizer_kwargs or {}
 
@@ -135,7 +137,9 @@ class GaussianErrorModel(ErrorModel):
             inv_hessian = np.diag([1] * len(minim_res.x))
 
         return ParameterFitResult(
-            fitted_thickness=calculator.build_predict_from_list(fixes=fixes or {})(minim_res.x),
+            fitted_thickness=calculator.build_predict_from_list(
+                fixes=fixes or {}
+            )(minim_res.x),
             params=minim_res.x,
             inv_hessian=inv_hessian,
             iterations=minim_res.nit,
