@@ -92,8 +92,8 @@ The _predict_ method of the _Model_-class expects an instance of _BoardFeatureCo
   * is_vcp: (whether the panel plating has been done on a vcp line)
   * Ratio: (Ratio between thickness and whole diameter)
   * board_thickness: thickness of the board in mm
-  * minimal_thickness: customer required minimal thickness
-  * margin: max. probability for the process to result in a thickness smaller than the _minimal_thickness_   
+  * required_thickness: customer required minimal thickness
+  * margin: max. probability for the process to result in a thickness smaller than the _required_thickness_
  The result of the algorithm will be output in the form of an instance of _MachineFeatureContainer_. This class holds the following attributes:
   * plating_time: duration in minutes
   * current_density: current density in A/cm^2?

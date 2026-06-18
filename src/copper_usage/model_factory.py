@@ -33,20 +33,23 @@ class ModelFactory:
         )
 
         return THICKNESS_CALCULATIONS[
-            cfg.get('calculation_model', PlainLinearThicknessCalculation)
+            cfg.get(
+                'calculation_model', 
+                PlainLinearThicknessCalculation,
+            )
         ](
             data_columns = columns,
             data_slicer = slicer,
             calc = math_calc,
             start_values = cfg.get(
-                'start_values', 
-                math_calc.default_start_values
+                'start_values',
+                math_calc.default_start_values,
             ),
         )
 
     @staticmethod
     def init_separate_vcp(config: dict, *args, **kwargs) -> Model:
-        
+
         slicers = VCPLineRatioSlicer.initialize_slices(
             config['slices'],
         )
@@ -69,7 +72,6 @@ class ModelFactory:
             ) for slicer in slicers
         ]
 
-        # TODO: Make configurable
         return Model(
             calculations,
             error_model=GaussianErrorModel()

@@ -12,6 +12,7 @@ from functools import wraps
 import warnings
 import logging
 
+
 from copper_usage.data_columns import DataColumns
 from copper_usage.sop_slicer import SOPSlicer
 
@@ -322,7 +323,11 @@ class BoardInclusiveLinearThicknessCalculation(PlainLinearThicknessCalculation):
             board_specifics=_board_specifics,
         )
 
-    def build_predict_from_list(self, fixes: dict=None, **kwargs) -> list[dict[int, Any]]:
+    def build_predict_from_list(
+            self, fixes: 
+            dict=None, 
+            **kwargs
+        ) -> list[dict[int, Any]]:
     
         for to_fix, fix in (fixes or {}).items():
             self._X0[to_fix] = fix

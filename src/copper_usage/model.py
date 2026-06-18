@@ -42,7 +42,7 @@ class Model:
                 return self.thickness_calculations[
                     self._select_calculator_idx(
                         is_vcp=is_vcp,
-                        Ratio=Ratio,
+                         Ratio=Ratio,
                     )
                 ].data_columns
 
@@ -74,7 +74,6 @@ class Model:
                 board_thickness=row[cols['board_thickness']],
             ) for _, row in df.iterrows()
         ]
-
 
     def _select_calculator_idx(
                 self,
