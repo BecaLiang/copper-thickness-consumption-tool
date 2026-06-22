@@ -1,8 +1,6 @@
 import argparse
 import pickle
 
-from pathlib import Path
-
 from copper_usage.model_factory import ModelFactory
 from copper_usage.datamanager import TrainingsDataManager
 

@@ -17,7 +17,6 @@ def read_cmdl_args():
 
 def main():
     cmdl_args = read_cmdl_args()
-    print(cmdl_args.bfc)
     with open(cmdl_args.model_file, 'rb') as pkl_in:
         model = pickle.load(pkl_in)
     print(model.predict(cmdl_args.bfc))
