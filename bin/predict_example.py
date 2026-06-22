@@ -11,7 +11,7 @@ from copper_usage.model import Model
 def read_cmdl_args():
     parser = simple_parsing.ArgumentParser()
     parser.add_arguments(BoardFeatureContainer, dest='bfc')
-    parser.add_argument('--model_file', required=True)
+    parser.add_argument('--model_file', '-mf', required=True)
     return parser.parse_args()
 
 

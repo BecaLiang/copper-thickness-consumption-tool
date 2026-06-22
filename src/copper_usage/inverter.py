@@ -2,52 +2,15 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from scipy.optimize import minimize, Bounds
+from scipy.optimize import minimize, differential_evolution
 from scipy.stats import norm
 from scipy.optimize._lbfgsb_py import LbfgsInvHessProduct
 
-
-from functools import partial, cached_property
-
-from pydantic.dataclasses import dataclass
-from pydantic import ConfigDict
+from functools import partial
+from typing import Callable
 
 from copper_usage.thickness_calculation import ThicknessCalculation
-
-
-@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
-class ParameterFitResult:
-    
-    params: np.ndarray
-    inv_hessian: np.ndarray
-    constrains: np.ndarray | None=None
-
-    def __post_init__(self):
-        assert len(self.params) == self.inv_hessian.shape[0]
-        assert len(self.params) == self.inv_hessian.shape[1]
-        self.dimension = len(self.params)
-
-    @cached_property
-    def hessian(self):
-        return np.linalg.inv(self.inv_hessian)
-    
-    def is_hessian_regular(self) -> bool:
-        if np.all(self.inv_hessian == np.diag(self.dimension)):
-            return False
-        return int(np.linalg.matrix_rank(self.inv_hessian)) == self.dimension
-
-    def calculate_distance(self, point: np.ndarray) -> float:
-        # use with caution; the formula is a (valid!) approximation around the minimum
-        if isinstance(point, (list, tuple)):
-            point = np.array(point)
-        assert point.shape == self.params.shape
-        V = point - self.params
-        return np.sqrt(
-            np.dot(
-                np.dot(V.T, self.hessian), 
-                V,
-            )
-        )
+from copper_usage.feature_containers import ParameterFitResult
 
 
 class ErrorModel(ABC):
@@ -72,15 +35,58 @@ class Score(ABC):
     pass
 
 
-class MainScore(Score):
+class PlainSquareScore(Score):
 
-    def __call__(self, predict, xs, y, minreq, sigma_v) -> float:
-        N = norm.cdf(minreq, predict(xs), sigma_v)
+    def __call__(
+            self, 
+            predict: Callable, 
+            xs: np.ndarray, 
+            y: float, 
+            minreq: float, 
+            sigma_v: float,
+        ) -> float:
+
+        N = norm.cdf(
+            x=minreq, 
+            loc=predict(xs), 
+            scale=sigma_v,
+        )
+
         return (N - y) ** 2
 
 
+class RegularizedScore(Score):
+
+    def __init__(self, reg_lambda: float=1):
+        self.reg_lambda = reg_lambda
+
+    def __call__(
+            self, 
+            predict: Callable, 
+            xs: np.ndarray, 
+            y: float, 
+            minreq: float, 
+            sigma_v: float,
+        ) -> float:
+        N = norm.cdf(
+            x=minreq, 
+            loc=predict(xs), 
+            scale=sigma_v,
+        )
+
+        reg_const = np.sqrt(
+            np.sum(
+                xs * xs
+            )
+        )
+
+        return (N - y) ** 2 + self.reg_lambda * reg_const
+
+
 class GaussianErrorModel(ErrorModel):
-    
+
+    # This has nothing to do with assumptions about the posterior distribution of the thickness
+
     def __init__(self, minimizer_kwargs=None):
         self.minimizer_kwargs = minimizer_kwargs or {}
 
@@ -93,28 +99,50 @@ class GaussianErrorModel(ErrorModel):
             empirical_sigma: float=None,
             fixes: dict=None,
     ) -> ParameterFitResult:
-        score = MainScore()
+
+        score = partial(
+            PlainSquareScore(),
+            calculator.build_predict_from_list(
+                fixes=fixes or {},
+                params=calculator.fitted_params,
+            ),
+        )
+
+        x0 = ThicknessCalculation.apply_fixes(calculator._X0, fixes)
+        cons = {
+            "type": "eq",
+            "fun": score,
+            "args": (
+                margin,
+                min_required,
+                empirical_sigma or calculator._y_width,
+            ),
+        }
+
         minim_res = minimize(
-            partial(
-                # self.score, 
-                score,
-                calculator.build_predict_from_list(
-                    fixes=fixes or {}
-                ),
-            ), 
-            x0=p0 or calculator._X0,
-            args=(margin, min_required, empirical_sigma or calculator._y_width),
+            lambda x: np.sum((x - calculator._X0) ** 2),
+            x0=x0,
+            constraints=[cons],
             bounds=calculator.data_columns.get_boundaries(),
         )
-        # Attention: fit might fail without throwing an exception!
-        # Adapting initial values might be necessary in that case
-        # TODO: deal with the issue described above
-        if isinstance(minim_res.hess_inv, LbfgsInvHessProduct):
-            inv_hessian = minim_res.hess_inv.todense()
-        else:
-            inv_hessian = minim_res.hess_inv
+
+        try:
+            if isinstance(minim_res.hess_inv, LbfgsInvHessProduct):
+                inv_hessian = minim_res.hess_inv.todense()
+            else:
+                inv_hessian = minim_res.hess_inv
+        except (AttributeError, KeyError):
+            inv_hessian = np.diag([1] * len(minim_res.x))
 
         return ParameterFitResult(
+            fitted_thickness=calculator.build_predict_from_list(
+                fixes=fixes or {}
+            )(minim_res.x),
             params=minim_res.x,
             inv_hessian=inv_hessian,
+            iterations=minim_res.nit,
         )
+    
+
+class ErrorModelFactory:
+    pass

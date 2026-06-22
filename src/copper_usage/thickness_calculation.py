@@ -6,10 +6,24 @@ import pandas as pd
 import numpy as np
 
 from typing import Any
+from numpy.typing import NDArray
 from functools import wraps
+
+import warnings
+import logging
+
 
 from copper_usage.data_columns import DataColumns
 from copper_usage.sop_slicer import SOPSlicer
+
+
+logging.basicConfig(
+    filename="thickness_calculation_run.log",
+    level=logging.WARNING,
+    filemode='w',
+    format="%(asctime)s | %(levelname)s | %(message)s"
+)
+logging.captureWarnings(True)
 
 
 MATHMODELS = {}
@@ -76,10 +90,27 @@ class PlainLinearModelWithBoard(MathematicalThicknessModel):
 @register_mathmodel('linear_board_and_spray')
 class PlainLinearModelWithBoardAndSpray(MathematicalThicknessModel):
 
-    default_start_values = [1, 1, 1, 0]
+    default_start_values = [36, 1, 1, 0]
 
     def __call__(self, X, slope, bthick, pspray, offset):
         return slope * X[0] * X[1] + bthick * X[2] + pspray * X[3] + offset
+    
+
+@register_mathmodel('linear_board_spray_fixed_time') 
+class LinearModelWithSprayFixedTime(MathematicalThicknessModel):
+
+    default_start_values = [1, 1, 1, 0]
+
+    def __init__(
+            self, 
+            fixed_time: float,
+            column_ids = None,
+        ):
+        super().__init__(column_ids)
+        self._fixed_time = fixed_time
+
+    def __call__(self, X, slope, bthick, pspray, offset):
+        return slope * X[0] * self._fixed_time + bthick * X[1] + pspray * X[2] + offset
 
 
 class ThicknessCalculation(ABC):
@@ -90,7 +121,8 @@ class ThicknessCalculation(ABC):
             data_slicer: SOPSlicer,
             calc: MathematicalThicknessModel,
             start_values: list[float],
-            # data_names: ,
+            epsilon: float=1e-3,
+            board_specifics: list[str]=None,
         ):
 
         self.data_columns = data_columns
@@ -104,6 +136,14 @@ class ThicknessCalculation(ABC):
 
         self._y_width = None
         self._X0 = None
+
+        self._epsilon = epsilon
+
+        if board_specifics is None:
+            self.board_specifics = []
+        else:
+            assert len(set(board_specifics) - set(self.data_columns.fitted_parameters)) == 0
+            self.board_specifics = board_specifics
 
     def is_in_charge(self, **kwargs):
         return self.slicer.is_in_charge(**kwargs)
@@ -121,7 +161,7 @@ class ThicknessCalculation(ABC):
         pass
 
     def clean_data(self, df: pd.DataFrame, verbose: float=False):
-        
+
         dfproc = self.slicer.slice_data(df)
         dfnotNull = dfproc[
             ~dfproc[self.data_columns.relevant_columns]
@@ -130,6 +170,17 @@ class ThicknessCalculation(ABC):
         ]
         if dfnotNull.shape[0] != dfproc.shape[0] and verbose:
             print(self.slicer, '\tNot-Null Entries:', dfnotNull.shape[0], 'of', dfproc.shape[0])
+
+        for col, v in self.data_columns.fixed_values.items():
+            if np.any(np.abs(dfnotNull[self.data_columns[col]] - v) > self._epsilon):
+                ps_valid = np.abs(dfnotNull[self.data_columns[col]] - v) < self._epsilon
+                Ninvalid, Nvalid = (~ps_valid).sum(), ps_valid.sum()
+                warnings.warn(
+                    f'\nATTENTION: {Ninvalid} values deviate too far from {v} for {col} - '
+                    f'that amounts to {Ninvalid / (Ninvalid + Nvalid) * 100:.1f}%. '
+                    f'Removing {Ninvalid} from {Ninvalid + Nvalid} entries'
+                )
+                dfnotNull = dfnotNull[ps_valid]
 
         assert len(dfnotNull) > 0
         return dfnotNull
@@ -180,6 +231,15 @@ class ThicknessCalculation(ABC):
     
     def extract_fixed_values(self, **kwargs) -> dict[int, Any]:
         return {}
+    
+    @staticmethod
+    def apply_fixes(
+        X: list[float] | NDArray[np.float64],
+        fixes: dict[int, float]=None
+    ) -> list | NDArray[np.float64]:
+        for to_fix, fix in (fixes or {}).items():
+            X[to_fix] = fix
+        return X
 
 
 @register_calculator('plain_linear_calculation')
@@ -198,11 +258,19 @@ class PlainLinearThicknessCalculation(ThicknessCalculation):
         Xin = self._pd_to_numpy(df)
         Ytrain = df[self.data_columns.target_column].values
 
+        if start_values is None:
+            if self.start_values is not None:
+                assert len(self.start_values) == len(self.calc.default_start_values)
+                start_values = self.start_values
+            else:
+                start_values = self._X0
+
         self.fitted_params, self.fitted_cov = curve_fit(
             self.calc, 
             Xin,
             Ytrain,
-            p0=self.start_values if start_values is None else start_values,
+            # p0=self.start_values if start_values is None else start_values,
+            p0=start_values,
         )
 
         # TODO: Bit of a tricky business; might be not precise enough for an estimtor
@@ -230,14 +298,42 @@ class PlainLinearThicknessCalculation(ThicknessCalculation):
 @register_calculator('board_linear_calculation')
 class BoardInclusiveLinearThicknessCalculation(PlainLinearThicknessCalculation):
 
-    def build_predict_from_list(self, fixes: dict=None, **kwargs) -> list[dict[int, Any]]:
+    def __init__(
+            self,
+            data_columns, 
+            data_slicer,
+            calc,
+            start_values,
+            epsilon=0.001, 
+            board_specifics=None,
+        ):
+        if board_specifics is None:
+            _board_specifics = ['board_thickness']
+        else:
+            _board_specifics = board_specifics
+        if not isinstance(_board_specifics, list):
+            raise TypeError
 
+        super().__init__(
+            data_columns,
+            data_slicer,
+            calc,
+            start_values,
+            epsilon=epsilon,
+            board_specifics=_board_specifics,
+        )
+
+    def build_predict_from_list(
+            self, fixes: 
+            dict=None, 
+            **kwargs
+        ) -> list[dict[int, Any]]:
+    
         for to_fix, fix in (fixes or {}).items():
             self._X0[to_fix] = fix
         
         def new_predict_from_list(X):
-            for to_fix, fix in (fixes or {}).items():
-                X[to_fix] = fix
+            X = ThicknessCalculation.apply_fixes(X, fixes)
             return self.predict_from_list(X)
         
         return new_predict_from_list
