@@ -7,8 +7,6 @@ from scipy.stats import norm
 from scipy.optimize._lbfgsb_py import LbfgsInvHessProduct
 
 from functools import partial
-
-# from pydantic.dataclasses import dataclass
 from typing import Callable
 
 from copper_usage.thickness_calculation import ThicknessCalculation
