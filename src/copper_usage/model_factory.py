@@ -2,6 +2,7 @@ import yaml
 
 from pathlib import Path
 
+from copper_usage.utils import deep_merge_two_dicts
 from copper_usage.data_columns import DataColumns
 from copper_usage.thickness_calculation import (
     MATHMODELS,
@@ -21,7 +22,6 @@ class ModelFactory:
         slicer: VCPLineRatioSlicer,
         cfg: dict,
     ):
-        
         columns = DataColumns.init_from_config(
             cfg.get('data_columns', None),
         )
@@ -33,27 +33,37 @@ class ModelFactory:
         )
 
         return THICKNESS_CALCULATIONS[
-            cfg.get('calculation_model', PlainLinearThicknessCalculation)
+            cfg.get(
+                'calculation_model', 
+                PlainLinearThicknessCalculation,
+            )
         ](
             data_columns = columns,
             data_slicer = slicer,
             calc = math_calc,
             start_values = cfg.get(
-                'start_values', 
-                math_calc.default_start_values
+                'start_values',
+                math_calc.default_start_values,
             ),
         )
 
     @staticmethod
     def init_separate_vcp(config: dict, *args, **kwargs) -> Model:
-        
+
         slicers = VCPLineRatioSlicer.initialize_slices(
             config['slices'],
         )
 
         vcp_cfg = config['vcp']
-        # common = config['common']
+        vcp_cfg['data_columns'] = deep_merge_two_dicts(
+            config.get('common_data_columns', {}),
+            vcp_cfg['data_columns'],
+        )
         non_vcp_cfg = config['non_vcp']
+        non_vcp_cfg['data_columns'] = deep_merge_two_dicts(
+            config.get('common_data_columns', {}),
+            non_vcp_cfg['data_columns'],
+        )
 
         calculations = [
             ModelFactory.build_single_calculation_slice(
@@ -62,14 +72,13 @@ class ModelFactory:
             ) for slicer in slicers
         ]
 
-        # TODO: Make configurable
         return Model(
             calculations,
             error_model=GaussianErrorModel()
         )
     
     @staticmethod
-    def build_model_from_config(cfg_file):
+    def build_model_from_config(cfg_file: str='default_models.yaml'):
         if Path(cfg_file).is_file():
             with open(Path(cfg_file)) as yin:
                 return ModelFactory.init_separate_vcp(yaml.safe_load(yin))
