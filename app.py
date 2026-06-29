@@ -200,6 +200,19 @@ def get_text(key):
     return TEXTS[key][st.session_state.language]
 
 # ============ MODEL CONSTRAINTS ============
+# Define Bound class at MODULE LEVEL (not inside a function)
+class Bound:
+    """Constraint class with get() method for scipy optimization"""
+    def __init__(self, lower, upper):
+        self.lower = lower
+        self.upper = upper
+    
+    def get(self):
+        return [self.lower, self.upper]
+    
+    def __repr__(self):
+        return f"Bound(lower={self.lower}, upper={self.upper})"
+
 def fix_model_constraints(model):
     """
     Properly set constraints/bounds for the model's optimization.
@@ -234,23 +247,11 @@ def fix_model_constraints(model):
                     # Store bounds directly as a list of tuples
                     calc._bounds = bounds_list
                     
-                    # Set constraints on data_columns
+                    # Set constraints on data_columns using the module-level Bound class
                     if calc.data_columns.constraints is None:
                         calc.data_columns.constraints = {}
                     
                     for i, param in enumerate(fitted_params):
-                        # Create a proper bound object with a get() method that takes no args
-                        class Bound:
-                            def __init__(self, lower, upper):
-                                self.lower = lower
-                                self.upper = upper
-                            
-                            def get(self):
-                                return [self.lower, self.upper]
-                            
-                            def __repr__(self):
-                                return f"Bound(lower={self.lower}, upper={self.upper})"
-                        
                         calc.data_columns.constraints[param] = Bound(
                             bounds_list[i][0], 
                             bounds_list[i][1]
