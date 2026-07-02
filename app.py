@@ -10,12 +10,20 @@ import traceback
 from pathlib import Path
 from PIL import Image
 from texts_config import TEXTS
-
-from stg_colors import stg_color, ColorSet
+from stg_utils.stg_colors import stg_color, ColorSet
 from copper_usage.feature_containers import BoardFeatureContainer, MachineFeatureContainer
 from copper_usage.model_factory import ModelFactory
 from copper_usage.datamanager import TrainingsDataManager
 
+from stg_utils.pd_utils import (
+    get_week_table,
+    join_weekday_gbweek_on_frame,
+    apply_equal_statistics_binning,
+    fit_equal_statistics_binning,
+    add_equal_binning_to_df,
+    make_series_division_safe,
+    get_most_frequent_category
+)
 
 PACKAGES_AVAILABLE = True
 
