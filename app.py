@@ -11,11 +11,6 @@ from pathlib import Path
 from PIL import Image
 from texts_config import TEXTS
 
-# Add paths - use relative paths
-current_dir = Path(__file__).resolve().parent
-sys.path.append(str(current_dir))
-sys.path.insert(0, str(current_dir / 'src'))
-
 from stg_colors import stg_color, ColorSet
 from copper_usage.feature_containers import BoardFeatureContainer, MachineFeatureContainer
 from copper_usage.model_factory import ModelFactory
@@ -24,7 +19,7 @@ from copper_usage.datamanager import TrainingsDataManager
 PACKAGES_AVAILABLE = True
 
 # Logo path - use relative path
-logo_path = current_dir / "Logo Blue Slogan.jpg"
+logo_path = Path(__file__).resolve().parent / "Logo Blue Slogan.jpg"
 logo_exists = logo_path.exists()
 
 # Fixed safety margin - 5%
@@ -207,10 +202,10 @@ with col_logo:
 st.markdown(f'<div class="main-header">{get_text("title")}</div>', unsafe_allow_html=True)
 
 # File paths
-TRAINING_DATA_PATH = current_dir / "train_data.csv"
-MODEL_CONFIG_PATH = current_dir / "src" / "copper_usage" / "config" / "default_models.yaml"
-DATA_CONFIG_PATH = current_dir / "src" / "copper_usage" / "config" / "data_settings.yaml"
-MODEL_SAVE_PATH = current_dir / "trained_model.pkl"
+TRAINING_DATA_PATH = Path(__file__).resolve().parent / "train_data.csv"
+MODEL_CONFIG_PATH = Path(__file__).resolve().parent / "src" / "copper_usage" / "config" / "default_models.yaml"
+DATA_CONFIG_PATH = Path(__file__).resolve().parent / "src" / "copper_usage" / "config" / "data_settings.yaml"
+MODEL_SAVE_PATH = Path(__file__).resolve().parent / "trained_model.pkl"
 
 # Initialize session state
 if 'model' not in st.session_state:
