@@ -16,6 +16,7 @@ from copper_usage.feature_containers import BoardFeatureContainer, MachineFeatur
 from copper_usage.model_factory import ModelFactory
 from copper_usage.datamanager import TrainingsDataManager
 
+
 PACKAGES_AVAILABLE = True
 
 # Logo path - use relative path
