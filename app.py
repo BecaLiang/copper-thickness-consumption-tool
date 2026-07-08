@@ -260,7 +260,10 @@ if not st.session_state.model_loaded and PACKAGES_AVAILABLE and not st.session_s
                     st.session_state.model_loaded = True
                 
     except Exception as e:
-        # Only show error if model fails to load
+        print("ERROR: Model initialization failed")
+        traceback.print_exc()
+        print("=" * 80 + "\n")
+        
         st.error(f"Model initialization error: {e}")
         with st.expander("Technical Details"):
             st.code(traceback.format_exc())
