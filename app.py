@@ -281,11 +281,13 @@ with st.form("prediction_form"):
     
     with col1:
         st.markdown(f"**{get_text('board_specifications')}**")
-        
+        # place a small bold label above the first widget so it aligns with the right column
+        st.markdown(f"**{get_text('line_type')}**")
         is_vcp = st.selectbox(
             get_text('line_type'),
             options=[True, False],
-            format_func=lambda x: get_text('vcp_line') if x else get_text('non_vcp_line')
+            format_func=lambda x: get_text('vcp_line') if x else get_text('non_vcp_line'),
+            label_visibility="collapsed"
         )
         
         board_thickness = st.number_input(
@@ -312,16 +314,18 @@ with st.form("prediction_form"):
         st.markdown(f"**{get_text('quality_requirements')}**")
         
         # Hole copper requirement with dropdown + custom option
+        # render an explicit bold label so the select aligns with the left column
         st.markdown(f"**{get_text('required_thickness')}**")
-        
+
         # Options for dropdown
         requirement_options = ["15", "18", "20", "25", "Custom"]
-        
+
         selected_requirement = st.selectbox(
             get_text('select_requirement'),
             options=requirement_options,
             key="requirement_select",
-            help="Select standard requirement or choose 'Custom' to enter your own value"
+            help="Select standard requirement or choose 'Custom' to enter your own value",
+            label_visibility="collapsed"
         )
         
         # Initialize custom value in session state if not exists
