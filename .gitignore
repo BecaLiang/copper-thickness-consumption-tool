@@ -48,3 +48,21 @@ Thumbs.db
 *.mov
 *.wmv
 
+# Data files
+trained_model.pkl
+train_data.csv
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Build artifacts
+*.egg-info/
+*.egg-info
+dist/
+build/
