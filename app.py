@@ -215,6 +215,7 @@ TRAINING_DATA_PATH = Path(__file__).resolve().parent / "train_data.csv"
 MODEL_CONFIG_PATH = Path(__file__).resolve().parent / "src" / "copper_usage" / "config" / "default_models.yaml"
 DATA_CONFIG_PATH = Path(__file__).resolve().parent / "src" / "copper_usage" / "config" / "data_settings.yaml"
 MODEL_SAVE_PATH = Path(__file__).resolve().parent / "trained_model.pkl"
+# MODEL_SAVE_PATH = Path(__file__).resolve().parent / "test_model.pkl"
 
 # Initialize session state
 if 'model' not in st.session_state:
@@ -360,15 +361,12 @@ with st.form("prediction_form"):
     if submitted:
         try:
             with st.spinner(get_text('calculating')):
-                # Convert required thickness from μm to mm
-                required_thickness_mm = minimal_thickness_um / 1000
-                
                 # Create BoardFeatureContainer with correct parameters
                 board = BoardFeatureContainer(
                     is_vcp=is_vcp,
                     Ratio=ratio,
                     board_thickness=board_thickness,
-                    required_thickness=required_thickness_mm,
+                    required_thickness=minimal_thickness_um,
                     margin=FIXED_MARGIN
                 )
                 
