@@ -14,7 +14,7 @@ required_packages = [
 setup(
     name='copper_usage', 
     author='Johannes Grygier, Beca Liang',
-    version='0.1.1',
+    version='0.2.0',
     package_dir={'': 'src'},
     packages=find_packages(
         where='src',
