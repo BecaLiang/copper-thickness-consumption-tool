@@ -6,4 +6,4 @@ pandas
 scipy
 streamlit
 plotly
-stg_utils @ git+https://bitbucket.org/starteamglobal/stg_utils.git
+stg_utils @ git+ssh://git@bitbucket.org/starteamglobal/stg_utils.git
