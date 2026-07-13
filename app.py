@@ -282,7 +282,6 @@ with st.form("prediction_form"):
     
     with col1:
         st.markdown(f"**{get_text('board_specifications')}**")
-        # place a small bold label above the first widget so it aligns with the right column
         st.markdown(f"**{get_text('line_type')}**")
         is_vcp = st.selectbox(
             get_text('line_type'),
@@ -315,7 +314,6 @@ with st.form("prediction_form"):
         st.markdown(f"**{get_text('quality_requirements')}**")
         
         # Hole copper requirement with dropdown + custom option
-        # render an explicit bold label so the select aligns with the left column
         st.markdown(f"**{get_text('required_thickness')}**")
 
         # Options for dropdown
@@ -332,11 +330,15 @@ with st.form("prediction_form"):
         # Initialize custom value in session state if not exists
         if 'custom_thickness' not in st.session_state:
             st.session_state.custom_thickness = 15.0
+            st.session_state.show_custom_input = False
         
         if selected_requirement == "Custom":
-            # Show number input for custom value
-            minimal_thickness_um = st.number_input(
-                f"{get_text('required_thickness')} ({get_text('unit_micrometer')})",
+            if not st.session_state.get('show_custom_input', False):
+                st.session_state.show_custom_input = True
+                st.rerun()
+
+            required_thickness_mm = st.number_input(
+                f"{get_text('required_thickness')} ({get_text('unit_mm')})",
                 min_value=5.0,
                 max_value=100.0,
                 value=st.session_state.custom_thickness,
@@ -346,11 +348,12 @@ with st.form("prediction_form"):
                 help="Enter customer required minimum copper thickness"
             )
             # Store the custom value in session state
-            st.session_state.custom_thickness = minimal_thickness_um
+            st.session_state.custom_thickness = required_thickness_mm
         else:
-            minimal_thickness_um = float(selected_requirement)
+            st.session_state.show_custom_input = False
+            required_thickness_mm = float(selected_requirement)
         
-        st.markdown(f'<div class="caption">{get_text("unit_micrometer")}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="caption">{get_text("unit_mm")}</div>', unsafe_allow_html=True)
     
     st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
     
@@ -366,7 +369,7 @@ with st.form("prediction_form"):
                     is_vcp=is_vcp,
                     Ratio=ratio,
                     board_thickness=board_thickness,
-                    required_thickness=minimal_thickness_um,
+                    required_thickness=required_thickness_mm,
                     margin=FIXED_MARGIN
                 )
                 
@@ -383,7 +386,7 @@ with st.form("prediction_form"):
                     'is_vcp': is_vcp,
                     'board_thickness': board_thickness,
                     'ratio': ratio,
-                    'minimal_thickness': minimal_thickness_um,
+                    'required_thickness': required_thickness_mm,
                     'margin': FIXED_MARGIN
                 }
                 
@@ -401,7 +404,7 @@ if st.session_state.get('calculation_result'):
     is_vcp = data['is_vcp']
     board_thickness = data['board_thickness']
     ratio = data['ratio']
-    minimal_thickness_um = data['minimal_thickness']
+    required_thickness_mm = data['required_thickness']
     
     st.markdown("---")
     st.markdown(f"## {get_text('recommended_parameters')}")
@@ -467,7 +470,7 @@ if st.session_state.get('calculation_result'):
         - **{get_text('line_type')}:** {get_text('vcp_line') if is_vcp else get_text('non_vcp_line')}
         - **{get_text('board_thickness')}:** {board_thickness} mm
         - **{get_text('aspect_ratio')}:** {ratio:.2f}
-        - **{get_text('required_thickness')}:** {minimal_thickness_um} μm
+        - **{get_text('required_thickness')}:** {required_thickness_mm} mm
         - **Safety Margin:** {FIXED_MARGIN * 100}%
         """)
     
@@ -491,7 +494,7 @@ if st.session_state.get('calculation_result'):
         "is_vcp": is_vcp,
         "Ratio": ratio,
         "board_thickness_mm": board_thickness,
-        "required_thickness_um": minimal_thickness_um,
+        "required_thickness_um": required_thickness_mm,
         "safety_margin_percent": FIXED_MARGIN * 100,
         "plating_time_min": result.plating_time,
     }
