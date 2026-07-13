@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from utils import weekdays, get_last_week_of_year
-from stg_utils.country_info import CountryInfo
+from country_info import CountryInfo
 
 
 def get_week_table(
