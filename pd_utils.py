@@ -3,7 +3,7 @@ from datetime import date, datetime
 import numpy as np
 import pandas as pd
 
-from stg_utils.utils import weekdays, get_last_week_of_year
+from utils import weekdays, get_last_week_of_year
 from stg_utils.country_info import CountryInfo
 
 
