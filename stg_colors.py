@@ -7,7 +7,7 @@ from functools import cached_property
 from typing import Any
 from collections import UserDict
 
-from stg_utils.utils import make_int
+from utils import make_int
 
 
 _stg_all_colors = {
